@@ -1,0 +1,36 @@
+web:
+  # Build the Drupal 8 image
+  # https://hub.docker.com/r/_/drupal/
+  image: drupal:8.2.0-rc1-apache
+  # Environment variables
+  environment:
+    # Drupal settings
+    DRUPAL_PROFILE: standard
+    DRUPAL_SITE_NAME: Drupal
+    DRUPAL_USER: admin
+    DRUPAL_PASS: 1965
+    DRUPAL_DBURL: mysql://drupal:drupal@database:3306/drupal
+  ports:
+    # Host machine's port 8000 will map to Drupal's port 80
+    - "8080:80"
+  volumes:
+    # Drupal should live in the "drupal" directory
+    - /var/www/drupal8:/var/www/html
+  links:
+    - database:database
+#  command: php -S 0.0.0.0:80 -t /app
+  working_dir: /app
+  restart: always
+
+# MySQL Server
+database:
+  image: mysql
+  environment:
+    MYSQL_USER: root
+    MYSQL_PASSWORD: 1965
+    MYSQL_DATABASE: drupal
+    MYSQL_ROOT_PASSWORD: '1965'
+    MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
+  restart: always
+composer:
+  image: louisbl/composer

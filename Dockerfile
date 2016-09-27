@@ -13,4 +13,3 @@ RUN curl -fsSL -o /usr/local/bin/drush "https://github.com/drush-ops/drush/relea
 
 # Test your install.
 RUN drush core-status
-																																							
