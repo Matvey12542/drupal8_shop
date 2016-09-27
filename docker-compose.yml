@@ -24,6 +24,7 @@ web:
 
 # MySQL Server
 database:
+  hostname: mysql
   image: mysql
   environment:
     MYSQL_USER: root
