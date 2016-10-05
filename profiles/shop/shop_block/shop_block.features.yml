@@ -1,0 +1,17 @@
+bundle: shop
+excluded:
+  - automated_cron.settings
+  - seven.settings
+  - shopic.settings
+  - system.cron
+  - system.theme
+  - block.block.bootstrap_account_menu
+  - block.block.bootstrap_footer
+  - block.block.bootstrap_main_menu
+  - block.block.bootstrap_tools
+  - system.menu.account
+  - system.menu.footer
+  - system.menu.main
+  - system.menu.tools
+  - views.view.glossary
+required: true

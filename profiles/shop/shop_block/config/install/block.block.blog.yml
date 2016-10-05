@@ -1,0 +1,32 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.blog
+  module:
+    - menu_block
+    - system
+  theme:
+    - shopic
+id: blog
+theme: shopic
+region: sidebar_first
+weight: -7
+provider: null
+plugin: 'menu_block:blog'
+settings:
+  id: 'menu_block:blog'
+  label: Блог
+  provider: menu_block
+  label_display: '0'
+  level: 1
+  depth: 0
+  expand: 0
+  parent: 'blog:'
+  suggestion: blog
+visibility:
+  request_path:
+    id: request_path
+    pages: "/article/*\r\n/tag/*"
+    negate: false
+    context_mapping: {  }
