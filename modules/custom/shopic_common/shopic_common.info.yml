@@ -1,0 +1,7 @@
+name: Shopic common
+description: Common shop functional.
+package: Custom
+
+type: module
+core: 8.x
+
