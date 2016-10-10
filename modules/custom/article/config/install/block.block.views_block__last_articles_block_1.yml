@@ -1,0 +1,31 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - views.view.last_articles
+  module:
+    - ctools
+    - views
+  theme:
+    - shopic
+id: views_block__last_articles_block_1
+theme: shopic
+region: content
+weight: -2
+provider: null
+plugin: 'views_block:last_articles-block_1'
+settings:
+  id: 'views_block:last_articles-block_1'
+  label: ''
+  provider: views
+  label_display: visible
+  views_label: ''
+  items_per_page: none
+visibility:
+  'entity_bundle:node':
+    id: 'entity_bundle:node'
+    bundles:
+      article: article
+    negate: false
+    context_mapping:
+      node: '@node.node_route_context:node'
