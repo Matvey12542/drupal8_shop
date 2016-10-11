@@ -19,7 +19,7 @@ web:
   links:
     - database:database
 #  command: php -S 0.0.0.0:80 -t /app
-  working_dir: /app
+  working_dir: /var/www/html
   restart: always
 
 # MySQL Server
@@ -35,3 +35,9 @@ database:
   restart: always
 composer:
   image: louisbl/composer
+drupal_console:
+  image: drupalconsole/console:1.0
+  volumes:
+    # Drupal should live in the "drupal" directory
+    - /var/www/drupal8:/var/www/html
+
