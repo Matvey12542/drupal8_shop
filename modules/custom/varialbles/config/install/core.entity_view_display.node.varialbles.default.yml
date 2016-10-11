@@ -1,0 +1,22 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.field.node.varialbles.field_email
+    - node.type.varialbles
+  module:
+    - user
+id: node.varialbles.default
+targetEntityType: node
+bundle: varialbles
+mode: default
+content:
+  field_email:
+    weight: 102
+    label: above
+    settings: {  }
+    third_party_settings: {  }
+    type: basic_string
+  links:
+    weight: 100
+hidden: {  }

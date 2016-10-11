@@ -1,0 +1,25 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.product_comments
+    - core.entity_view_mode.comment.full
+    - field.field.comment.product_comments.comment_body
+  module:
+    - text
+id: comment.product_comments.full
+targetEntityType: comment
+bundle: product_comments
+mode: full
+content:
+  comment_body:
+    label: hidden
+    type: text_default
+    weight: 0
+    settings: {  }
+    third_party_settings: {  }
+  links:
+    weight: 100
+    settings: {  }
+    third_party_settings: {  }
+hidden: {  }

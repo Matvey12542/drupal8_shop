@@ -1,0 +1,10 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - system.menu.blog
+    - taxonomy.vocabulary.tags
+id: blog
+label: Блог
+vocabulary: tags
+menu: blog

@@ -1,0 +1,14 @@
+name: 'Basic page'
+description: 'Provides Basic page content type and related configuration. Use <em>basic pages</em> for your static content, such as an ''About us'' page.'
+type: module
+core: 8.x
+dependencies:
+  - core
+  - field
+  - menu_ui
+  - node
+  - path
+  - rdf
+  - site
+  - text
+  - user

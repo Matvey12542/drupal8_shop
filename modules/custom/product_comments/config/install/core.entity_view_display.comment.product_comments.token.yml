@@ -1,0 +1,23 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - comment.type.product_comments
+    - core.entity_view_mode.comment.token
+    - field.field.comment.product_comments.comment_body
+  module:
+    - text
+id: comment.product_comments.token
+targetEntityType: comment
+bundle: product_comments
+mode: token
+content:
+  comment_body:
+    label: hidden
+    type: text_trimmed
+    weight: 0
+    settings:
+      trim_length: 600
+    third_party_settings: {  }
+hidden:
+  links: true

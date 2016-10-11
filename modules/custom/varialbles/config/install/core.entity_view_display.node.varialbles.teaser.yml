@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - core.entity_view_mode.node.teaser
+    - field.field.node.varialbles.field_email
+    - node.type.varialbles
+  module:
+    - user
+id: node.varialbles.teaser
+targetEntityType: node
+bundle: varialbles
+mode: teaser
+content:
+  links:
+    weight: 100
+hidden:
+  field_email: true

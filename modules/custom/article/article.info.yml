@@ -4,6 +4,7 @@ type: module
 core: 8.x
 dependencies:
   - block
+  - core
   - ctools
   - field
   - menu_ui
@@ -11,6 +12,8 @@ dependencies:
   - path
   - pathauto
   - rdf
+  - rules
+  - site
   - text
   - user
   - views

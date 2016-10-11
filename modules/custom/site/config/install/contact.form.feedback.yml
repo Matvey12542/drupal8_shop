@@ -1,0 +1,11 @@
+langcode: en
+status: true
+dependencies: {  }
+id: feedback
+label: 'Website feedback'
+recipients:
+  - matvey12542@gmail.com
+reply: ''
+weight: 0
+message: 'Your message has been sent.'
+redirect: ''

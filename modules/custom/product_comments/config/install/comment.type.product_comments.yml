@@ -1,0 +1,7 @@
+langcode: en
+status: true
+dependencies: {  }
+id: product_comments
+label: 'Product comments'
+target_entity_type_id: commerce_product
+description: ''

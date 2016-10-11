@@ -1,0 +1,18 @@
+langcode: en
+status: true
+dependencies:
+  config:
+    - field.storage.profile.field_po_batkovi
+    - profile.type.customer
+id: profile.customer.field_po_batkovi
+field_name: field_po_batkovi
+entity_type: profile
+bundle: customer
+label: По-батькові
+description: ''
+required: false
+translatable: false
+default_value: {  }
+default_value_callback: ''
+settings: {  }
+field_type: string
