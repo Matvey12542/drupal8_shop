@@ -3,7 +3,7 @@ ADD . /var/www/html
 WORKDIR /var/www/html
 
 CMD cd ~/
-
+COPY /var/www/drupal8/php.ini /usr/local/etc/php/
 RUN apt-get install curl
 ENV DRUSH_VERSION 8.1.2
 
@@ -13,7 +13,7 @@ RUN curl -fsSL -o /usr/local/bin/drush "https://github.com/drush-ops/drush/relea
 
 
 # Install modules
-apt-get update && apt-get install -y \
+RUN apt-get update && apt-get install -y \
         libfreetype6-dev \
         libjpeg62-turbo-dev \
         libmcrypt-dev \
@@ -22,6 +22,10 @@ apt-get update && apt-get install -y \
     && docker-php-ext-install mcrypt pdo_mysql mysqli mbstring opcache soap bcmath \
     && docker-php-ext-configure gd --with-freetype-dir=/usr/include/ --with-jpeg-dir=/usr/include/ \
     && docker-php-ext-install gd
+
+
+ display_errors = On
+ error_reporting = E_ALL | E_STRICT
 
 # Setup xdebug
 RUN curl -L -o /root/xdebug.tgz https://pecl.php.net/get/xdebug-2.3.2.tgz && \
