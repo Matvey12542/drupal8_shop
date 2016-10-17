@@ -1,8 +1,9 @@
 web:
   # Build the Drupal 8 image
   # https://hub.docker.com/r/_/drupal/
-  image: drupal:8.2.0-rc1-apache
+  #image: drupal:8.2.0-rc1-apache
   # Environment variables
+  build: .
   environment:
     # Drupal settings
     DRUPAL_PROFILE: standard
@@ -16,6 +17,10 @@ web:
   volumes:
     # Drupal should live in the "drupal" directory
     - /var/www/drupal8:/var/www/html
+    - /var/docker/logs:/var/log/apache2
+
+    # TODO change php.ini path
+    - /etc/php/7.0/apache2/php.ini:/usr/local/etc/php/php.ini
   links:
     - database:database
 #  command: php -S 0.0.0.0:80 -t /app
@@ -33,11 +38,6 @@ database:
     MYSQL_ROOT_PASSWORD: '1965'
     MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'
   restart: always
-composer:
-  image: louisbl/composer
-drupal_console:
-  image: drupalconsole/console:1.0
-  volumes:
-    # Drupal should live in the "drupal" directory
-    - /var/www/drupal8:/var/www/html
 
+#composer:
+#  image: louisbl/composer
