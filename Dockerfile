@@ -8,9 +8,12 @@ RUN curl -fsSL -o /usr/local/bin/drush "https://github.com/drush-ops/drush/relea
 RUN drush core-status
 
 #Install Drupal Console
-RUN curl http://drupalconsole.com/installer -L -o drupal.phar
-RUN mv drupal.phar /usr/local/bin/drupal && chmod +x /usr/local/bin/drupal
-#RUN drupal init
-
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+RUN composer require drupal/console:~1.0 --prefer-dist --optimize-autoloader
+RUN composer update drupal/console --with-dependencies
+RUN curl https://drupalconsole.com/installer -L -o drupal.phar
+RUN mv drupal.phar /usr/local/bin/drupal
+RUN chmod +x /usr/local/bin/drupal
 
 WORKDIR /var/www/html
+RUN drupal init
