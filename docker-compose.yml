@@ -11,6 +11,8 @@ web:
     DRUPAL_USER: admin
     DRUPAL_PASS: 1965
     DRUPAL_DBURL: mysql://drupal:drupal@database:3306/drupal
+    XDEBUG_CONFIG: "remote_host=188.0.67.76"
+    PHP_IDE_CONFIG: "serverName=dr8serv"
   ports:
     # Host machine's port 8000 will map to Drupal's port 80
     - "8080:80"
