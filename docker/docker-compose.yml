@@ -19,10 +19,9 @@ web:
   volumes:
     # Drupal should live in the "drupal" directory
     - /var/www/drupal8:/var/www/html
-    - /var/docker/logs:/var/log/apache2
+    - logs:/var/log/apache2
+#    - /etc/php/7.0/apache2/php.ini:/usr/local/etc/php/php.ini
 
-    # TODO change php.ini path
-    - /etc/php/7.0/apache2/php.ini:/usr/local/etc/php/php.ini
   links:
     - database:database
 #  command: php -S 0.0.0.0:80 -t /app

@@ -4,6 +4,9 @@ ENV DRUSH_VERSION 8.1.2
 RUN curl -fsSL -o /usr/local/bin/drush "https://github.com/drush-ops/drush/releases/download/$DRUSH_VERSION/drush.phar" && \
   chmod +x /usr/local/bin/drush
 
+  #Use ->  alias dr="cd /var/www/drupal8/docker && docker-compose exec web drush".
+  #than -> dr status for use drush.
+
 # Test your install.
 RUN drush core-status
 
@@ -17,6 +20,9 @@ RUN chmod +x /usr/local/bin/drupal
 
 WORKDIR /var/www/html
 RUN drupal init
+
+#php.ini
+COPY php.ini /etc/php7/conf.d/xx-drupal.ini
 
 #xdebug
 RUN yes | pecl install xdebug \
