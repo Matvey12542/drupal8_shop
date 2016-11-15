@@ -1,16 +1,20 @@
 FROM drupal:8.2.0-rc1-apache
 
+#Use drush
+#alias dr="cd /var/www/drupal8/docker && docker-compose exec web drush".
+#dr status for use drush.
+
 ENV DRUSH_VERSION 8.1.2
 RUN curl -fsSL -o /usr/local/bin/drush "https://github.com/drush-ops/drush/releases/download/$DRUSH_VERSION/drush.phar" && \
   chmod +x /usr/local/bin/drush
-
-  #Use ->  alias dr="cd /var/www/drupal8/docker && docker-compose exec web drush".
-  #than -> dr status for use drush.
-
-# Test your install.
 RUN drush core-status
 
 #Install Drupal Console
+
+#Use drupal console
+#alias drupal-console="cd /var/www/drupal8/docker && docker-compose exec web drupal"
+#drupal-console list
+
 RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
 RUN composer require drupal/console:~1.0 --prefer-dist --optimize-autoloader
 RUN composer update drupal/console --with-dependencies
