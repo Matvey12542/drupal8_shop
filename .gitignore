@@ -46,3 +46,4 @@ core/phpcs.xml
 core/phpunit.xml
 
 docker/logs
+console/log
