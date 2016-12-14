@@ -10,31 +10,12 @@ namespace Drupal\Console\Command\Router;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Core\Routing\RouteProviderInterface;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
 use Drupal\Component\Serialization\Yaml;
 
-class DebugCommand extends Command
+class DebugCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /**
-     * @var RouteProviderInterface
-     */
-    protected $routeProvider;
-
-    /**
-     * DebugCommand constructor.
-     * @param RouteProviderInterface $routeProvider
-     */
-    public function __construct(RouteProviderInterface $routeProvider)
-    {
-        $this->routeProvider = $routeProvider;
-        parent::__construct();
-    }
-
     protected function configure()
     {
         $this
@@ -62,7 +43,8 @@ class DebugCommand extends Command
 
     protected function getAllRoutes(DrupalStyle $io)
     {
-        $routes = $this->routeProvider->getAllRoutes();
+        $routeProvider = $this->getRouteProvider();
+        $routes = $routeProvider->getAllRoutes();
 
         $tableHeader = [
             $this->trans('commands.router.debug.messages.name'),
@@ -79,7 +61,8 @@ class DebugCommand extends Command
 
     protected function getRouteByNames(DrupalStyle $io, $route_name)
     {
-        $routes = $this->routeProvider->getRoutesByNames($route_name);
+        $rp = $this->getRouteProvider();
+        $routes = $rp->getRoutesByNames($route_name);
 
         foreach ($routes as $name => $route) {
             $tableHeader = [

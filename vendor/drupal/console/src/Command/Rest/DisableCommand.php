@@ -10,57 +10,11 @@ namespace Drupal\Console\Command\Rest;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Annotations\DrupalCommand;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\RestTrait;
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\rest\Plugin\Type\ResourcePluginManager;
 
-/**
- * @DrupalCommand(
- *     extension = "rest",
- *     extensionType = "module"
- * )
- */
-class DisableCommand extends Command
+class DisableCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-    use RestTrait;
-
-    /**
- * @var ConfigFactory  
-*/
-    protected $configFactory;
-
-    /**
- * @var ResourcePluginManager  
-*/
-    protected $pluginManagerRest;
-
-    /**
-     * DisableCommand constructor.
-     * @param ConfigFactory         $configFactory
-     * @param ResourcePluginManager $pluginManagerRest
-     */
-    public function __construct(
-        ConfigFactory $configFactory,
-        ResourcePluginManager $pluginManagerRest
-    ) {
-        $this->configFactory = $configFactory;
-        $this->pluginManagerRest = $pluginManagerRest;
-        parent::__construct();
-    }
-
-
-    /**
-     * @DrupalCommand(
-     *     dependencies = {
-     *         “rest"
-     *     }
-     * )
-     */
     protected function configure()
     {
         $this
@@ -71,6 +25,8 @@ class DisableCommand extends Command
                 InputArgument::OPTIONAL,
                 $this->trans('commands.rest.debug.arguments.resource-id')
             );
+
+        $this->addDependency('rest');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -91,28 +47,16 @@ class DisableCommand extends Command
             );
         }
 
-        $this->validateRestResource(
-            $resource_id,
-            $rest_resources_ids,
-            $this->translator
-        );
+        $this->validateRestResource($resource_id, $rest_resources_ids, $this->getTranslator());
         $input->setArgument('resource-id', $resource_id);
         $rest_settings = $this->getRestDrupalConfig();
 
         unset($rest_settings[$resource_id]);
 
-        $config = $this->configFactory->getEditable('rest.settings');
+        $config = $this->getConfigFactory()
+            ->getEditable('rest.settings');
 
         $config->set('resources', $rest_settings);
         $config->save();
-
-        $io->success(
-            sprintf(
-                $this->trans('commands.rest.disable.messages.success'),
-                $resource_id
-            )
-        );
-
-        return 0;
     }
 }

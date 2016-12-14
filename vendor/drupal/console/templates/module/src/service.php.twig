@@ -5,7 +5,8 @@
 {% endblock %}
 
 {% block namespace_class %}
-namespace Drupal\{{module}};{% endblock %}
+namespace Drupal\{{module}};
+{% endblock %}
 
 {% block class_declaration %}
 /**
@@ -13,7 +14,7 @@ namespace Drupal\{{module}};{% endblock %}
  *
  * @package Drupal\{{module}}
  */
-class {{ class }}{% if(interface is defined and interface) %} implements {{ interface }}{% endif %} {% endblock %}
+class {{ class }}{% if(interface is defined and interface) %} implements {{ class }}Interface{% endif %} {% endblock %}
 {% block class_construct %}
   /**
    * Constructor.

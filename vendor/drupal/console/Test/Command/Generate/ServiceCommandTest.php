@@ -23,7 +23,6 @@ class ServiceCommandTest extends GenerateCommandTest
      * @param $class
      * @param $interface
      * @param $services
-     * @param $path_service
      *
      * @dataProvider commandData
      */
@@ -32,18 +31,13 @@ class ServiceCommandTest extends GenerateCommandTest
         $name,
         $class,
         $interface,
-        $services,
-        $path_service
+        $services
     ) {
         $command = new ServiceCommand($this->getHelperSet());
         $command->setHelperSet($this->getHelperSet());
         $command->setGenerator($this->getGenerator());
 
         $commandTester = new CommandTester($command);
-
-        $this->markTestIncomplete(
-            'This test has not been implemented yet.'
-        );
 
         $code = $commandTester->execute(
             [
@@ -52,7 +46,6 @@ class ServiceCommandTest extends GenerateCommandTest
               '--class'     => $class,
               '--interface'      => $interface,
               '--services'       => $services,
-              '--path_service'   => $path_service,
             ],
             ['interactive' => false]
         );

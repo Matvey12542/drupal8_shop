@@ -10,14 +10,12 @@ namespace Drupal\Console\Command\Generate;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
 
-abstract class EntityCommand extends Command
+abstract class EntityCommand extends GeneratorCommand
 {
-    use CommandTrait;
     use ModuleTrait;
     private $entityType;
     private $commandName;
@@ -100,12 +98,12 @@ abstract class EntityCommand extends Command
         $io = new DrupalStyle($input, $output);
 
         $commandKey = str_replace(':', '.', $this->commandName);
-        $utils = $this->stringConverter;
+        $utils = $this->getStringHelper();
 
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
             $module = $this->moduleQuestion($io);
             $input->setOption('module', $module);
         }
@@ -117,7 +115,7 @@ abstract class EntityCommand extends Command
                 $this->trans('commands.'.$commandKey.'.questions.entity-class'),
                 'DefaultEntity',
                 function ($entityClass) {
-                    return $this->validator->validateSpaces($entityClass);
+                    return $this->validateSpaces($entityClass);
                 }
             );
 
@@ -131,7 +129,7 @@ abstract class EntityCommand extends Command
                 $this->trans('commands.'.$commandKey.'.questions.entity-name'),
                 $utils->camelCaseToMachineName($entityClass),
                 function ($entityName) {
-                    return $this->validator->validateMachineName($entityName);
+                    return $this->validateMachineName($entityName);
                 }
             );
             $input->setOption('entity-name', $entityName);
@@ -161,6 +159,10 @@ abstract class EntityCommand extends Command
             $base_path = '/' . $base_path;
         }
         $input->setOption('base-path', $base_path);
+    }
+
+    protected function createGenerator()
+    {
     }
 
     /**

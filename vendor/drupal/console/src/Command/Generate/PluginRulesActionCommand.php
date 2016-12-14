@@ -11,65 +11,19 @@ use Drupal\Console\Generator\PluginRulesActionGenerator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Drupal\Console\Command\Shared\ServicesTrait;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\FormTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ServicesTrait;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\FormTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\StringConverter;
-use Drupal\Console\Utils\ChainQueue;
 
-/**
- * Class PluginRulesActionCommand
- * @package Drupal\Console\Command\Generate
- */
-class PluginRulesActionCommand extends Command
+class PluginRulesActionCommand extends GeneratorCommand
 {
     use ServicesTrait;
     use ModuleTrait;
     use FormTrait;
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginRulesActionGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-
-    /**
-     * PluginRulesActionCommand constructor.
-     * @param Manager                     $extensionManager
-     * @param PluginRulesActionGenerator  $generator
-     * @param StringConverter             $stringConverter
-     * @param ChainQueue                  $chainQueue
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginRulesActionGenerator $generator,
-        StringConverter $stringConverter,
-        ChainQueue $chainQueue
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -118,7 +72,7 @@ class PluginRulesActionCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        // @see use Drupal\Console\Command\Shared\ConfirmationTrait::confirmGeneration
+        // @see use Drupal\Console\Command\ConfirmationTrait::confirmGeneration
         if (!$this->confirmGeneration($io)) {
             return;
         }
@@ -131,9 +85,11 @@ class PluginRulesActionCommand extends Command
         $category = $input->getOption('category');
         $context = $input->getOption('context');
 
-        $this->generator->generate($module, $class_name, $label, $plugin_id, $category, $context, $type);
+        $this
+            ->getGenerator()
+            ->generate($module, $class_name, $label, $plugin_id, $category, $context, $type);
 
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'discovery']);
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'discovery']);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
@@ -143,8 +99,8 @@ class PluginRulesActionCommand extends Command
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
             $input->setOption('module', $module);
         }
 
@@ -163,7 +119,7 @@ class PluginRulesActionCommand extends Command
         if (!$label) {
             $label = $io->ask(
                 $this->trans('commands.generate.plugin.rulesaction.options.label'),
-                $this->stringConverter->camelCaseToHuman($class_name)
+                $this->getStringHelper()->camelCaseToHuman($class_name)
             );
             $input->setOption('label', $label);
         }
@@ -173,7 +129,7 @@ class PluginRulesActionCommand extends Command
         if (!$plugin_id) {
             $plugin_id = $io->ask(
                 $this->trans('commands.generate.plugin.rulesaction.options.plugin-id'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('plugin-id', $plugin_id);
         }
@@ -193,7 +149,7 @@ class PluginRulesActionCommand extends Command
         if (!$category) {
             $category = $io->ask(
                 $this->trans('commands.generate.plugin.rulesaction.options.category'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('category', $category);
         }
@@ -203,9 +159,14 @@ class PluginRulesActionCommand extends Command
         if (!$context) {
             $context = $io->ask(
                 $this->trans('commands.generate.plugin.rulesaction.options.context'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('context', $context);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginRulesActionGenerator();
     }
 }

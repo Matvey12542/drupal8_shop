@@ -11,64 +11,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\Console\Generator\PluginImageFormatterGenerator;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\StringConverter;
-use Drupal\Console\Utils\Validator;
-use Drupal\Console\Utils\ChainQueue;
 
-class PluginImageFormatterCommand extends Command
+class PluginImageFormatterCommand extends GeneratorCommand
 {
     use ModuleTrait;
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginImageFormatterGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /** @var Validator  */
-    protected $validator;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-
-    /**
-     * PluginImageFormatterCommand constructor.
-     * @param Manager $extensionManager
-     * @param PluginImageFormatterGenerator $generator
-     * @param StringConverter $stringConverter
-     * @param Validator $validator
-     * @param ChainQueue $chainQueue
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginImageFormatterGenerator $generator,
-        StringConverter $stringConverter,
-        Validator $validator,
-        ChainQueue $chainQueue
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        $this->validator = $validator;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -104,7 +55,7 @@ class PluginImageFormatterCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        // @see use Drupal\Console\Command\Shared\ConfirmationTrait::confirmGeneration
+        // @see use Drupal\Console\Command\ConfirmationTrait::confirmGeneration
         if (!$this->confirmGeneration($io)) {
             return;
         }
@@ -114,9 +65,11 @@ class PluginImageFormatterCommand extends Command
         $label = $input->getOption('label');
         $plugin_id = $input->getOption('plugin-id');
 
-        $this->generator->generate($module, $class_name, $label, $plugin_id);
-        
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'discovery']);
+        $this
+            ->getGenerator()
+            ->generate($module, $class_name, $label, $plugin_id);
+
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'discovery']);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
@@ -126,8 +79,8 @@ class PluginImageFormatterCommand extends Command
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
         }
         $input->setOption('module', $module);
 
@@ -146,7 +99,7 @@ class PluginImageFormatterCommand extends Command
         if (!$label) {
             $label = $io->ask(
                 $this->trans('commands.generate.plugin.imageformatter.questions.label'),
-                $this->stringConverter->camelCaseToHuman($class_name)
+                $this->getStringHelper()->camelCaseToHuman($class_name)
             );
             $input->setOption('label', $label);
         }
@@ -156,9 +109,14 @@ class PluginImageFormatterCommand extends Command
         if (!$plugin_id) {
             $plugin_id = $io->ask(
                 $this->trans('commands.generate.plugin.imageformatter.questions.plugin-id'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('plugin-id', $plugin_id);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginImageFormatterGenerator();
     }
 }

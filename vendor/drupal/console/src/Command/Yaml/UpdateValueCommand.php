@@ -12,29 +12,11 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Yaml\Dumper;
 use Symfony\Component\Yaml\Parser;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Utils\NestedArray;
 
 class UpdateValueCommand extends Command
 {
-    use CommandTrait;
-
-    /**
-     * @var NestedArray
-     */
-    protected $nestedArray;
-
-    /**
-     * RebuildCommand constructor.
-     * @param NestedArray    $nestedArray
-     */
-    public function __construct(NestedArray $nestedArray) {
-        $this->nestedArray = $nestedArray;
-        parent::__construct();
-    }
-
     protected function configure()
     {
         $this
@@ -85,8 +67,9 @@ class UpdateValueCommand extends Command
             );
         }
 
+        $nested_array = $this->getNestedArrayHelper();
         $parents = explode(".", $yaml_key);
-        $this->nestedArray->setValue($yaml_parsed, $parents, $yaml_value, true);
+        $nested_array->setValue($yaml_parsed, $parents, $yaml_value, true);
 
 
         try {

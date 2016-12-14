@@ -9,62 +9,15 @@ namespace Drupal\Console\Command\Site;
 
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\ContainerAwareCommandTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Utils\DrupalApi;
-use Drupal\Core\Entity\Query\QueryFactory;
-use Drupal\Console\Extension\Manager;
-use Drupal\Core\Extension\ModuleHandlerInterface;
 
 /**
  * Class StatisticsCommand
  * @package Drupal\Console\Command\Site
  */
-class StatisticsCommand extends Command
+class StatisticsCommand extends ContainerAwareCommand
 {
-    use ContainerAwareCommandTrait;
-
-    /**
-     * @var DrupalApi
-     */
-    protected $drupalApi;
-
-    /**
-     * @var QueryFactory
-     */
-    protected $entityQuery;
-
-    /**
-     * @var Manager
-     */
-    protected $extensionManager;
-
-    /**
-     * @var ModuleHandlerInterface
-     */
-    protected $moduleHandler;
-
-    /**
-     * StatisticsCommand constructor.
-     * @param DrupalApi                 $drupalApi
-     * @param QueryFactory              $entityQuery;
-     * @param Manager                   $extensionManager
-     * @param ModuleHandlerInterface    $moduleHandler
-     */
-    public function __construct(
-        DrupalApi $drupalApi,
-        QueryFactory $entityQuery,
-        Manager $extensionManager,
-        ModuleHandlerInterface $moduleHandler
-    ) {
-        $this->drupalApi = $drupalApi;
-        $this->entityQuery = $entityQuery;
-        $this->extensionManager = $extensionManager;
-        $this->moduleHandler = $moduleHandler;
-        parent::__construct();
-    }
-
     /**
      * @{@inheritdoc}
      */
@@ -84,7 +37,7 @@ class StatisticsCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        $bundles = $this->drupalApi->getBundles();
+        $bundles = $this->getDrupalApi()->getBundles();
         foreach ($bundles as $bundleType => $bundleName) {
             $key = sprintf(
                 $this->trans('commands.site.statistics.messages.node-type'),
@@ -97,7 +50,6 @@ class StatisticsCommand extends Command
         $statistics[$this->trans('commands.site.statistics.messages.taxonomy-terms')] = $this->getTaxonomyTermCount();
         $statistics[$this->trans('commands.site.statistics.messages.files')] = $this->getFileCount();
         $statistics[$this->trans('commands.site.statistics.messages.users')] = $this->getUserCount();
-        $statistics[$this->trans('commands.site.statistics.messages.views')] = $this->getViewCount();
         $statistics[$this->trans('commands.site.statistics.messages.modules-enabled')] = $this->getModuleCount(true);
         $statistics[$this->trans('commands.site.statistics.messages.modules-disabled')] = $this->getModuleCount(false);
         $statistics[$this->trans('commands.site.statistics.messages.themes-enabled')] = $this->getThemeCount(true);
@@ -113,7 +65,7 @@ class StatisticsCommand extends Command
      */
     private function getNodeTypeCount($nodeType)
     {
-        $nodesPerType = $this->entityQuery->get('node')->condition('type', $nodeType)->count();
+        $nodesPerType = $this->getEntityQuery()->get('node')->condition('type', $nodeType)->count();
         $nodes = $nodesPerType->execute();
 
         return $nodes;
@@ -124,11 +76,7 @@ class StatisticsCommand extends Command
      */
     private function getCommentCount()
     {
-        if (!$this->moduleHandler->moduleExists('comment')) {
-            return 0;
-        }
-        
-        $entityQuery = $this->entityQuery->get('comment')->count();
+        $entityQuery = $this->getEntityQuery()->get('comment')->count();
         $comments = $entityQuery->execute();
 
         return $comments;
@@ -139,7 +87,7 @@ class StatisticsCommand extends Command
      */
     private function getTaxonomyVocabularyCount()
     {
-        $entityQuery = $this->entityQuery->get('taxonomy_vocabulary')->count();
+        $entityQuery = $this->getEntityQuery()->get('taxonomy_vocabulary')->count();
         $vocabularies = $entityQuery->execute();
 
         return $vocabularies;
@@ -150,7 +98,7 @@ class StatisticsCommand extends Command
      */
     private function getTaxonomyTermCount()
     {
-        $entityQuery = $this->entityQuery->get('taxonomy_term')->count();
+        $entityQuery = $this->getEntityQuery()->get('taxonomy_term')->count();
         $terms = $entityQuery->execute();
 
         return $terms;
@@ -161,7 +109,7 @@ class StatisticsCommand extends Command
      */
     private function getFileCount()
     {
-        $entityQuery = $this->entityQuery->get('file')->count();
+        $entityQuery = $this->getEntityQuery()->get('file')->count();
         $files = $entityQuery->execute();
 
         return $files;
@@ -172,7 +120,7 @@ class StatisticsCommand extends Command
      */
     private function getUserCount()
     {
-        $entityQuery = $this->entityQuery->get('user')->count();
+        $entityQuery = $this->getEntityQuery()->get('user')->count();
         $users = $entityQuery->execute();
 
         return $users;
@@ -185,10 +133,10 @@ class StatisticsCommand extends Command
     private function getModuleCount($status = true)
     {
         if ($status) {
-            return count($this->extensionManager->discoverModules()->showCore()->showNoCore()->showInstalled()->getList());
+            return count($this->getSite()->getModules(true));
         }
 
-        return count($this->extensionManager->discoverModules()->showCore()->showNoCore()->showUninstalled()->getList());
+        return count($this->getSite()->getModules(true, false, true));
     }
 
     /**
@@ -198,21 +146,10 @@ class StatisticsCommand extends Command
     private function getThemeCount($status = true)
     {
         if ($status) {
-            return count($this->extensionManager->discoverThemes()->showCore()->showNoCore()->showInstalled()->getList());
+            return count($this->getSite()->getThemes(true));
         }
 
-        return count($this->extensionManager->discoverThemes()->showCore()->showNoCore()->showUninstalled()->getList());
-    }
-
-    /**
-     * @return mixed
-     */
-    private function getViewCount($status = true, $tag = 'default')
-    {
-        $entityQuery = $this->entityQuery->get('view')->condition('tag', 'default', '<>')->count();
-        $views = $entityQuery->execute();
-
-        return $views;
+        return count($this->getSite()->getThemes(true, false, true));
     }
 
     /**

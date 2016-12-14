@@ -9,30 +9,11 @@ namespace Drupal\Console\Command\Image;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
 
-class StylesFlushCommand extends Command
+class StylesFlushCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /**
-     * @var EntityTypeManagerInterface
-     */
-    protected $entityTypeManager;
-
-    /**
-     * StylesDebugCommand constructor.
-     * @param EntityTypeManagerInterface $entityTypeManager
-     */
-    public function __construct(EntityTypeManagerInterface $entityTypeManager)
-    {
-        $this->entityTypeManager = $entityTypeManager;
-        parent::__construct();
-    }
-
     protected function configure()
     {
         $this
@@ -45,16 +26,13 @@ class StylesFlushCommand extends Command
             );
     }
 
-    /**
-     * {@inheritdoc}
-     */
     protected function interact(InputInterface $input, OutputInterface $output)
     {
         $io = new DrupalStyle($input, $output);
         $styles = $input->getArgument('styles');
         if (!$styles) {
-            $imageStyle = $this->entityTypeManager->getStorage('image_style');
-            $styleList = $imageStyle->loadMultiple();
+            $image_handler = $this->entityTypeManager()->getStorage('image_style');
+            $styleList = $image_handler->loadMultiple();
             $styleNames = [];
             foreach ($styleList as $style) {
                 $styleNames[] = $style->get('name');
@@ -70,7 +48,6 @@ class StylesFlushCommand extends Command
             $input->setArgument('styles', $styles);
         }
     }
-
     /**
      * {@inheritdoc}
      */
@@ -78,17 +55,17 @@ class StylesFlushCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
         $styles = $input->getArgument('styles');
-        $result = 0;
 
-        $imageStyle = $this->entityTypeManager->getStorage('image_style');
-        $stylesNames = [];
+        $image_handler = $this->entityTypeManager()->getStorage('image_style');
+
         if (in_array('all', $styles)) {
-            $styles = $imageStyle->loadMultiple();
+            $styles = $image_handler->loadMultiple();
+
             foreach ($styles as $style) {
-                $stylesNames[] = $style->get('name');
+                $styles_names[] = $style->get('name');
             }
 
-            $styles = $stylesNames;
+            $styles = $styles_names;
         }
 
         foreach ($styles as $style) {
@@ -99,16 +76,14 @@ class StylesFlushCommand extends Command
                         $style
                     )
                 );
-                $imageStyle->load($style)->flush();
+
+                $image_handler->load($style)->flush();
             } catch (\Exception $e) {
                 watchdog_exception('image', $e);
                 $io->error($e->getMessage());
-                $result = 1;
             }
         }
 
         $io->success($this->trans('commands.image.styles.flush.messages.success'));
-
-        return $result;
     }
 }

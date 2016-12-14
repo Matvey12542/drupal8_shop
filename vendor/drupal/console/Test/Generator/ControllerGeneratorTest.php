@@ -31,7 +31,8 @@ class ControllerGeneratorTest extends GeneratorTest
         $class_name,
         $routes,
         $test,
-        $build_services
+        $build_services,
+        $class_machine_name
     ) {
         $generator = new ControllerGenerator();
         $this->getRenderHelper()->setSkeletonDirs($this->getSkeletonDirs());
@@ -43,7 +44,8 @@ class ControllerGeneratorTest extends GeneratorTest
             $class_name,
             $routes,
             $test,
-            $build_services
+            $build_services,
+            $class_machine_name
         );
 
         $files = [

@@ -126,38 +126,12 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   protected $destinationIds = [];
 
   /**
-   * Information on the property used as the high watermark.
-   *
-   * Array of 'name' & (optional) db 'alias' properties used for high watermark.
-   *
-   * @var array
-   */
-  protected $highWaterProperty;
-
-  /**
-   * Indicate whether the primary system of record for this migration is the
-   * source, or the destination (Drupal). In the source case, migration of
-   * an existing object will completely replace the Drupal object with data from
-   * the source side. In the destination case, the existing Drupal object will
-   * be loaded, then changes from the source applied; also, rollback will not be
-   * supported.
-   *
-   * @var string
-   */
-  protected $systemOfRecord = self::SOURCE;
-
-  /**
    * Specify value of source_row_status for current map row. Usually set by
    * MigrateFieldHandler implementations.
    *
    * @var int
    */
   protected $sourceRowStatus = MigrateIdMapInterface::STATUS_IMPORTED;
-
-  /**
-   * @var \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   */
-  protected $highWaterStorage;
 
   /**
    * Track time of last import if TRUE.
@@ -444,33 +418,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   }
 
   /**
-   * Get the high water storage object.
-   *
-   * @return \Drupal\Core\KeyValueStore\KeyValueStoreInterface
-   *   The storage object.
-   */
-  protected function getHighWaterStorage() {
-    if (!isset($this->highWaterStorage)) {
-      $this->highWaterStorage = \Drupal::keyValue('migrate:high_water');
-    }
-    return $this->highWaterStorage;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getHighWater() {
-    return $this->getHighWaterStorage()->get($this->id());
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function saveHighWater($high_water) {
-    $this->getHighWaterStorage()->set($this->id(), $high_water);
-  }
-
-  /**
    * {@inheritdoc}
    */
   public function checkRequirements() {
@@ -638,21 +585,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
   /**
    * {@inheritdoc}
    */
-  public function getSystemOfRecord() {
-    return $this->systemOfRecord;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function setSystemOfRecord($system_of_record) {
-    $this->systemOfRecord = $system_of_record;
-    return $this;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
   public function isTrackLastImported() {
     return $this->trackLastImported;
   }
@@ -720,13 +652,6 @@ class Migration extends PluginBase implements MigrationInterface, RequirementsIn
    */
   public function getSourceConfiguration() {
     return $this->source;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function getHighWaterProperty() {
-    return $this->highWaterProperty;
   }
 
   /**

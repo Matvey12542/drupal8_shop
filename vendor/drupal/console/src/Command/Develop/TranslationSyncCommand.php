@@ -14,41 +14,11 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Dumper;
 use Symfony\Component\Yaml\Parser;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\ConfigurationManager;
 
 class TranslationSyncCommand extends Command
 {
-    use CommandTrait;
-
-    /**
-     * @var string
-     */
-		protected $consoleRoot;
-
-    /**
-     * @var ConfigurationManager
-     */
-    protected $configurationManager;
-
-    /**
-     * TranslationSyncCommand constructor.
-     *
-     * @param $consoleRoot
-     * @param configurationManager $configurationManager
-     *
-     */
-    public function __construct(
-        $consoleRoot,
-        ConfigurationManager $configurationManager
-    ) {
-        $this->consoleRoot = $consoleRoot;
-        $this->configurationManager = $configurationManager;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -81,7 +51,11 @@ class TranslationSyncCommand extends Command
 
         $language = $input->getArgument('language');
         $file = $input->getOption('file');
-        $languages = $this->configurationManager->getConfiguration()->get('application.languages');
+
+        $application = $this->getApplication();
+        $appRoot = $application->getDirectoryRoot();
+
+        $languages = $application->getConfig()->get('application.languages');
         unset($languages['en']);
 
         if ($language && !isset($languages[$language])) {
@@ -98,22 +72,18 @@ class TranslationSyncCommand extends Command
             $languages = [$language => $languages[$language]];
         }
 
-        $this->syncTranslations($io, $language, $languages, $file);
+        $this->syncTranslations($io, $language, $languages, $file, $appRoot);
 
         $io->success($this->trans('commands.translation.sync.messages.sync-finished'));
     }
 
-    protected function syncTranslations($io, $language = null, $languages, $file)
+    protected function syncTranslations($io, $language = null, $languages, $file, $appRoot)
     {
         $englishFilesFinder = new Finder();
         $yaml = new Parser();
         $dumper = new Dumper();
 
-        $englishDirectory = $this->consoleRoot .
-            sprintf(
-                DRUPAL_CONSOLE_LANGUAGE,
-                'en'
-            );
+        $englishDirectory = $appRoot . 'config/translations/en';
 
         if ($file) {
             $englishFiles = $englishFilesFinder->files()->name($file)->in($englishDirectory);
@@ -134,11 +104,7 @@ class TranslationSyncCommand extends Command
             }
 
             foreach ($languages as $langCode => $languageName) {
-                $languageDir = $this->consoleRoot .
-										sprintf(
-												DRUPAL_CONSOLE_LANGUAGE,
-												$langCode
-										);
+                $languageDir = $appRoot . 'config/translations/' . $langCode;
                 if (isset($language) && $langCode != $language) {
                     continue;
                 }

@@ -2,7 +2,7 @@
 
 /**
  * @file
- * Contains \Drupal\Console\Command\PluginConditionCommand.
+ * Contains \Drupal\Console\Command\GeneratorPluginFieldFormatterCommand.
  */
 
 namespace Drupal\Console\Command\Generate;
@@ -10,67 +10,16 @@ namespace Drupal\Console\Command\Generate;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Core\Entity\EntityTypeRepository;
-use Drupal\Console\Command\Shared\CommandTrait;
 use Drupal\Console\Generator\PluginConditionGenerator;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Utils\ChainQueue;
-use Drupal\Console\Utils\StringConverter;
 
-
-/**
- * Class PluginConditionCommand
- * @package Drupal\Console\Command\Generate
- */
-class PluginConditionCommand extends Command
+class PluginConditionCommand extends GeneratorCommand
 {
-    use CommandTrait;
     use ModuleTrait;
     use ConfirmationTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginConditionGenerator  */
-    protected $generator;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-
-    /**
-     * PluginConditionCommand constructor.
-     * @param Manager              $extensionManager
-     * @param PluginConditionGenerator  $generator
-     * @param ChainQueue           $chainQueue
-     * @param EntityTypeRepository $entitytyperepository
-     * @param StringConverter      $stringConverter
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginConditionGenerator $generator,
-        ChainQueue $chainQueue,
-        EntityTypeRepository $entitytyperepository,
-        StringConverter $stringConverter
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->chainQueue = $chainQueue;
-        $this->entitytyperepository = $entitytyperepository;
-        $this->stringConverter = $stringConverter;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -124,7 +73,7 @@ class PluginConditionCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        // @see use Drupal\Console\Command\Shared\ConfirmationTrait::confirmGeneration
+        // @see use Drupal\Console\Command\ConfirmationTrait::confirmGeneration
         if (!$this->confirmGeneration($io)) {
             return;
         }
@@ -138,25 +87,25 @@ class PluginConditionCommand extends Command
         $context_definition_required = $input->getOption('context-definition-required')?'TRUE':'FALSE';
 
         $this
-            ->generator
+            ->getGenerator()
             ->generate($module, $class_name, $label, $plugin_id, $context_definition_id, $context_definition_label, $context_definition_required);
 
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'discovery']);
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'discovery']);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
     {
         $io = new DrupalStyle($input, $output);
 
-        $entityTypeRepository = $this->entitytyperepository;
+        $entity_manager = $this->getEntityManager();
 
-        $entity_types = $entityTypeRepository->getEntityTypeLabels(true);
+        $entity_types = $entity_manager->getEntityTypeLabels(true);
 
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
         }
         $input->setOption('module', $module);
 
@@ -175,7 +124,7 @@ class PluginConditionCommand extends Command
         if (!$label) {
             $label = $io->ask(
                 $this->trans('commands.generate.plugin.condition.questions.label'),
-                $this->stringConverter->camelCaseToHuman($class)
+                $this->getStringHelper()->camelCaseToHuman($class)
             );
             $input->setOption('label', $label);
         }
@@ -185,7 +134,7 @@ class PluginConditionCommand extends Command
         if (!$pluginId) {
             $pluginId = $io->ask(
                 $this->trans('commands.generate.plugin.condition.questions.plugin-id'),
-                $this->stringConverter->camelCaseToUnderscore($class)
+                $this->getStringHelper()->camelCaseToUnderscore($class)
             );
             $input->setOption('plugin-id', $pluginId);
         }
@@ -241,5 +190,10 @@ class PluginConditionCommand extends Command
             );
             $input->setOption('context-definition-required', $context_definition_required);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginConditionGenerator();
     }
 }

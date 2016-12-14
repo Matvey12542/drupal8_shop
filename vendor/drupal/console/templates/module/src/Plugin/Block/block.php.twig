@@ -28,7 +28,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
  *  admin_label = @Translation("{{label}}"),
  * )
  */
-class {{class_name}} extends BlockBase {% if services is not empty %}implements ContainerFactoryPluginInterface {% endif %}{% endblock %}
+class {{class_name}} extends BlockBase {% if services is not empty %}implements ContainerFactoryPluginInterface {% endif %}
+{% endblock %}
+
 {% block class_construct %}
 {% if services is not empty %}
   /**
@@ -50,8 +52,10 @@ class {{class_name}} extends BlockBase {% if services is not empty %}implements 
     parent::__construct($configuration, $plugin_id, $plugin_definition);
 {{ serviceClassInitialization(services) }}
   }
+
 {% endif %}
 {% endblock %}
+
 {% block class_create %}
 {% if services is not empty %}
   /**
@@ -65,36 +69,26 @@ class {{class_name}} extends BlockBase {% if services is not empty %}implements 
 {{ serviceClassInjection(services) }}
     );
   }
+
 {% endif %}
 {% endblock %}
+
 {% block class_methods %}
+
 {% if inputs %}
-
-  /**
-   * {@inheritdoc}
-   */
-  public function defaultConfiguration() {
-    return [
-    {% for input in inputs %}
-     '{{ input.name }}' => {{ input.default_code }},
-    {% endfor %}
-    ] + parent::defaultConfiguration();
-
- }
-
   /**
    * {@inheritdoc}
    */
   public function blockForm($form, FormStateInterface $form_state) {
 {% for input in inputs %}
-    $form['{{ input.name }}'] = [
+    $form['{{ input.name }}'] = array(
       '#type' => '{{ input.type }}',
       '#title' => $this->t('{{ input.label }}'),
       '#description' => $this->t('{{ input.description }}'),
 {% if input.options|length %}
       '#options' => {{ input.options }},
 {% endif %}
-      '#default_value' => $this->configuration['{{ input.name  }}'],
+      '#default_value' => isset($this->configuration['{{ input.name }}']) ? $this->configuration['{{ input.name }}'] : '{{ input.default_value }}',
 {% if input.maxlength|length %}
       '#maxlength' => {{ input.maxlength }},
 {% endif %}
@@ -104,7 +98,7 @@ class {{class_name}} extends BlockBase {% if services is not empty %}implements 
 {% if input.weight|length %}
       '#weight' => '{{ input.weight }}',
 {% endif %}
-    ];
+    );
 {% endfor %}
 
     return $form;
@@ -118,8 +112,8 @@ class {{class_name}} extends BlockBase {% if services is not empty %}implements 
     $this->configuration['{{ input.name }}'] = $form_state->getValue('{{ input.name }}');
 {% endfor %}
   }
-
 {% endif %}
+
   /**
    * {@inheritdoc}
    */

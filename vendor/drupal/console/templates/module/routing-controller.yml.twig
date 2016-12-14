@@ -4,7 +4,7 @@
 {% if learning is defined and learning %}
 {{ yaml_comment('application.messages.learning.route') }}
 {% endif %}
-{{ route.name }}:
+{{ module }}.{{ class_machine_name }}_{{ route.method }}:
   path: '{{ route.path }}'
   defaults:
     _controller: '\Drupal\{{ module }}\Controller\{{ class_name }}::{{ route.method }}'

@@ -1,32 +1,32 @@
-# {{ application.messages.title }}
+# {{ messages.title }}
 
-**{{ application.messages.note }}:** {{ application.messages.note_description }}.
+**{{ messages.note }}:** {{ messages.note_description }}.
 
-{{ application.messages.command }} | {{ application.messages.details }}
+{{ messages.command }} | {{ messages.details }}
 ------------ | -------------
-{% for namespace in application.namespaces %}
+{% for namespace, commands in command_list %}
 {% if namespace != 'none' %}
 **{{ namespace }}**  |
 {% endif %}
-{% for command in commands[namespace] %}
+{% for command in commands %}
 [{{ command.name }}]({{ command.name|replace(':','-') }}.md) | {{ command.description }}
 {% endfor %}
 {% endfor %}
-{% if application.options|length>0 %}
+{% if options|length>0 %}
 
-## {{ application.messages.options }}
-{{ application.messages.option }} | {{ application.messages.details }}
+## {{ messages.options }}
+{{ messages.option }} | {{ messages.details }}
 -------|-------------
-{% for option in application.options %}
+{% for option in options %}
 --{{ option.name }} | {{ option.description }}
 {% endfor %}
 {% endif %}
-{% if application.arguments|length>0 %}
+{% if arguments|length>0 %}
 
-## {{ application.messages.arguments }}
-{{ application.messages.argument }} | {{ application.messages.details }}
+## {{ messages.arguments }}
+{{ messages.argument }} | {{ messages.details }}
 ---------|-------------
-{% for argument in application.arguments %}
+{% for argument in arguments %}
 {{ argument.name }} | {{ argument.description }}
 {% endfor %}
 {% endif %}

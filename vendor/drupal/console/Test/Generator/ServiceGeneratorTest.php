@@ -22,7 +22,6 @@ class ServiceGeneratorTest extends GeneratorTest
      * @param $class
      * @param $interface
      * @param $services
-     * @param $path_service
      *
      * @dataProvider commandData
      */
@@ -31,8 +30,7 @@ class ServiceGeneratorTest extends GeneratorTest
         $name,
         $class,
         $interface,
-        $services,
-        $path_service
+        $services
     ) {
         $generator = new ServiceGenerator();
         $this->getRenderHelper()->setSkeletonDirs($this->getSkeletonDirs());
@@ -44,15 +42,14 @@ class ServiceGeneratorTest extends GeneratorTest
             $name,
             $class,
             $interface,
-            $services,
-            $path_service
+            $services
         );
 
         $files = [
           $generator->getSite()->getModulePath($module).'/'.$module.'.services.yml',
-          $generator->getSite()->getModulePath($module).'/'.$path_service .'/'.$class.'.php'
+          $generator->getSite()->getModulePath($module).'/src/'.$class.'.php'
         ];
-     
+
         foreach ($files as $file) {
             $this->assertTrue(
                 file_exists($file),

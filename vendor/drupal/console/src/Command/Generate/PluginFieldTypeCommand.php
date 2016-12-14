@@ -11,62 +11,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\Console\Generator\PluginFieldTypeGenerator;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\StringConverter;
-use Drupal\Console\Utils\ChainQueue;
-use Drupal\Core\Field\FieldTypePluginManager;
 
-/**
- * Class PluginFieldTypeCommand
- * @package Drupal\Console\Command\Generate
- */
-class PluginFieldTypeCommand extends Command
+class PluginFieldTypeCommand extends GeneratorCommand
 {
     use ModuleTrait;
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginFieldTypeGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-
-    /**
-     * PluginFieldTypeCommand constructor.
-     * @param Manager                  $extensionManager
-     * @param PluginFieldTypeGenerator $generator
-     * @param StringConverter          $stringConverter
-     * @param ChainQueue               $chainQueue
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginFieldTypeGenerator $generator,
-        StringConverter $stringConverter,
-        ChainQueue $chainQueue
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -120,7 +73,7 @@ class PluginFieldTypeCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        // @see use Drupal\Console\Command\Shared\ConfirmationTrait::confirmGeneration
+        // @see use Drupal\Console\Command\ConfirmationTrait::confirmGeneration
         if (!$this->confirmGeneration($io)) {
             return;
         }
@@ -133,10 +86,12 @@ class PluginFieldTypeCommand extends Command
         $default_widget = $input->getOption('default-widget');
         $default_formatter = $input->getOption('default-formatter');
 
-        $this->generator
+        $this
+            ->getGenerator()
             ->generate($module, $class_name, $label, $plugin_id, $description, $default_widget, $default_formatter);
 
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'discovery'], false);
+
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'discovery'], false);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
@@ -146,8 +101,8 @@ class PluginFieldTypeCommand extends Command
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
             $input->setOption('module', $module);
         }
 
@@ -166,7 +121,7 @@ class PluginFieldTypeCommand extends Command
         if (!$label) {
             $label = $io->ask(
                 $this->trans('commands.generate.plugin.fieldtype.questions.label'),
-                $this->stringConverter->camelCaseToHuman($class_name)
+                $this->getStringHelper()->camelCaseToHuman($class_name)
             );
             $input->setOption('label', $label);
         }
@@ -176,7 +131,7 @@ class PluginFieldTypeCommand extends Command
         if (!$plugin_id) {
             $plugin_id = $io->ask(
                 $this->trans('commands.generate.plugin.fieldtype.questions.plugin-id'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('plugin-id', $plugin_id);
         }
@@ -208,5 +163,10 @@ class PluginFieldTypeCommand extends Command
             );
             $input->setOption('default-formatter', $default_formatter);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginFieldTypeGenerator();
     }
 }

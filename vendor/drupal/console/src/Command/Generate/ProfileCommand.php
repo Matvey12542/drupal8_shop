@@ -7,83 +7,17 @@
 
 namespace Drupal\Console\Command\Generate;
 
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Generator\ProfileGenerator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Utils\StringConverter;
-use Drupal\Console\Utils\Validator;
-use Drupal\Console\Utils\Site;
-use GuzzleHttp\Client;
 
-
-/**
- * Class ProfileCommand
- * @package Drupal\Console\Command\Generate
- */
-
-class ProfileCommand extends Command
+class ProfileCommand extends GeneratorCommand
 {
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var ProfileGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /** @var Validator  */
-    protected $validator;
-
-    /**
-     * @var Site
-     */
-    protected $site;
-
-    /**
-     * @var Client
-     */
-    protected $httpClient;
-
-    /**
-     * ProfileCommand constructor.
-     * @param Manager          $extensionManager
-     * @param ProfileGenerator $generator
-     * @param StringConverter  $stringConverter
-     * @param Validator        $validator
-     * @param                  $appRoot
-     * @param Site             $site
-     * @param Client           $httpClient
-     */
-    public function __construct(
-        Manager $extensionManager,
-        ProfileGenerator $generator,
-        StringConverter $stringConverter,
-        Validator $validator,
-        $appRoot,
-        Site $site,
-        Client $httpClient
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        $this->validator = $validator;
-        $this->appRoot = $appRoot;
-        $this->site = $site;
-        $this->httpClient = $httpClient;
-        parent::__construct();
-    }
 
     /**
      * {@inheritdoc}
@@ -139,19 +73,21 @@ class ProfileCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
+        $validators = $this->getValidator();
+
         if (!$this->confirmGeneration($io)) {
             return;
         }
 
-        $profile = $this->validator->validateModuleName($input->getOption('profile'));
-        $machine_name = $this->validator->validateMachineName($input->getOption('machine-name'));
+        $profile = $validators->validateModuleName($input->getOption('profile'));
+        $machine_name = $validators->validateMachineName($input->getOption('machine-name'));
         $description = $input->getOption('description');
         $core = $input->getOption('core');
         $distribution = $input->getOption('distribution');
-        $profile_path = $this->appRoot . '/profiles';
+        $profile_path = $this->getDrupalHelper()->getRoot() . '/profiles';
 
         // Check if all module dependencies are available.
-        $dependencies = $this->validator->validateModuleDependencies($input->getOption('dependencies'));
+        $dependencies = $validators->validateModuleDependencies($input->getOption('dependencies'));
         if ($dependencies) {
             $checked_dependencies = $this->checkDependencies($dependencies['success']);
             if (!empty($checked_dependencies['no_modules'])) {
@@ -165,7 +101,8 @@ class ProfileCommand extends Command
             $dependencies = $dependencies['success'];
         }
 
-        $this->generator->generate(
+        $generator = $this->getGenerator();
+        $generator->generate(
             $profile,
             $machine_name,
             $profile_path,
@@ -182,7 +119,8 @@ class ProfileCommand extends Command
      */
     private function checkDependencies(array $dependencies)
     {
-        $this->site->loadLegacyFile('/core/modules/system/system.module');
+        $this->getDrupalHelper()->loadLegacyFile('/core/modules/system/system.module');
+        $client = $this->getHttpClient();
         $local_modules = array();
 
         $modules = system_rebuild_module_data();
@@ -200,7 +138,7 @@ class ProfileCommand extends Command
             if (in_array($module, $local_modules)) {
                 $checked_dependencies['local_modules'][] = $module;
             } else {
-                $response = $this->httpClient->head('https://www.drupal.org/project/' . $module);
+                $response = $client->head('https://www.drupal.org/project/' . $module);
                 $header_link = explode(';', $response->getHeader('link'));
                 if (empty($header_link[0])) {
                     $checked_dependencies['no_modules'][] = $module;
@@ -220,8 +158,8 @@ class ProfileCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        //$stringUtils = $this->getStringHelper();
-        $validators = $this->validator;
+        $stringUtils = $this->getStringHelper();
+        $validators = $this->getValidator();
 
         try {
             // A profile is technically also a module, so we can use the same
@@ -255,7 +193,7 @@ class ProfileCommand extends Command
         if (!$machine_name) {
             $machine_name = $io->ask(
                 $this->trans('commands.generate.profile.questions.machine-name'),
-                $this->stringConverter->createMachineName($profile),
+                $stringUtils->createMachineName($profile),
                 function ($machine_name) use ($validators) {
                     return $validators->validateMachineName($machine_name);
                 }
@@ -287,7 +225,7 @@ class ProfileCommand extends Command
                 $this->trans('commands.generate.profile.questions.dependencies'),
                 true
             )) {
-                $dependencies = $io->ask(
+                $dependencies = $output->ask(
                     $this->trans('commands.generate.profile.options.dependencies'),
                     ''
                 );
@@ -301,7 +239,7 @@ class ProfileCommand extends Command
                 $this->trans('commands.generate.profile.questions.distribution'),
                 false
             )) {
-                $distribution = $io->ask(
+                $distribution = $output->ask(
                     $this->trans('commands.generate.profile.options.distribution'),
                     'My Kick-ass Distribution'
                 );

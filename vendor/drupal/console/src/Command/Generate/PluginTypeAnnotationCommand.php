@@ -11,56 +11,19 @@ use Drupal\Console\Generator\PluginTypeAnnotationGenerator;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Drupal\Console\Command\Shared\ServicesTrait;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\FormTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ServicesTrait;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\FormTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Utils\StringConverter;
 
-
-/**
- * Class PluginTypeAnnotationCommand
- * @package Drupal\Console\Command\Generate
- */
-class PluginTypeAnnotationCommand extends Command
+class PluginTypeAnnotationCommand extends GeneratorCommand
 {
     use ServicesTrait;
     use ModuleTrait;
     use FormTrait;
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginTypeAnnotationGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /**
-     * PluginTypeAnnotationCommand constructor.
-     * @param Manager                       $extensionManager
-     * @param PluginTypeAnnotationGenerator $generator
-     * @param StringConverter               $stringConverter
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginTypeAnnotationGenerator $generator,
-        StringConverter $stringConverter
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -99,7 +62,8 @@ class PluginTypeAnnotationCommand extends Command
         $machine_name = $input->getOption('machine-name');
         $label = $input->getOption('label');
 
-        $this->generator->generate($module, $class_name, $machine_name, $label);
+        $generator = $this->getGenerator();
+        $generator->generate($module, $class_name, $machine_name, $label);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
@@ -109,8 +73,8 @@ class PluginTypeAnnotationCommand extends Command
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
             $input->setOption('module', $module);
         }
 
@@ -129,7 +93,7 @@ class PluginTypeAnnotationCommand extends Command
         if (!$machine_name) {
             $machine_name = $io->ask(
                 $this->trans('commands.generate.plugin.type.annotation.options.machine-name'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('machine-name', $machine_name);
         }
@@ -137,11 +101,16 @@ class PluginTypeAnnotationCommand extends Command
         // --label option
         $label = $input->getOption('label');
         if (!$label) {
-            $label = $io->ask(
+            $label = $output->ask(
                 $this->trans('commands.generate.plugin.type.annotation.options.label'),
-                $this->stringConverter->camelCaseToHuman($class_name)
+                $this->getStringHelper()->camelCaseToHuman($class_name)
             );
             $input->setOption('label', $label);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginTypeAnnotationGenerator();
     }
 }

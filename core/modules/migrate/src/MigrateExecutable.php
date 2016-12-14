@@ -67,13 +67,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $counts = array();
 
   /**
-   * The object currently being constructed.
-   *
-   * @var \stdClass
-   */
-  protected $destinationValues;
-
-  /**
    * The source.
    *
    * @var \Drupal\migrate\Plugin\MigrateSourceInterface
@@ -81,18 +74,20 @@ class MigrateExecutable implements MigrateExecutableInterface {
   protected $source;
 
   /**
-   * The current data row retrieved from the source.
-   *
-   * @var \stdClass
-   */
-  protected $sourceValues;
-
-  /**
    * The event dispatcher.
    *
    * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
    */
   protected $eventDispatcher;
+
+  /**
+   * Migration message service.
+   *
+   * @todo https://www.drupal.org/node/2822663 Make this protected.
+   *
+   * @var \Drupal\migrate\MigrateMessageInterface
+   */
+  public $message;
 
   /**
    * Constructs a MigrateExecutable and verifies and sets the memory limit.
@@ -229,7 +224,12 @@ class MigrateExecutable implements MigrateExecutableInterface {
         $save = FALSE;
       }
       catch (MigrateSkipRowException $e) {
-        $id_map->saveIdMapping($row, array(), MigrateIdMapInterface::STATUS_IGNORED);
+        if ($e->getSaveToMap()) {
+          $id_map->saveIdMapping($row, [], MigrateIdMapInterface::STATUS_IGNORED);
+        }
+        if ($message = trim($e->getMessage())) {
+          $this->saveMessage($message, MigrationInterface::MESSAGE_INFORMATIONAL);
+        }
         $save = FALSE;
       }
 
@@ -262,12 +262,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
           $this->handleException($e);
         }
       }
-      if ($high_water_property = $this->migration->getHighWaterProperty()) {
-        $this->migration->saveHighWater($row->getSourceProperty($high_water_property['name']));
-      }
 
-      // Reset row properties.
-      unset($sourceValues, $destinationValues);
       $this->sourceRowStatus = MigrateIdMapInterface::STATUS_IMPORTED;
 
       // Check for memory exhaustion.
@@ -354,10 +349,6 @@ class MigrateExecutable implements MigrateExecutableInterface {
         break;
       }
     }
-    // If rollback completed successfully, reset the high water mark.
-    if ($return == MigrationInterface::RESULT_COMPLETED) {
-      $this->migration->saveHighWater(NULL);
-    }
 
     // Notify modules that rollback attempt was complete.
     $this->getEventDispatcher()->dispatch(MigrateEvents::POST_ROLLBACK, new MigrateRollbackEvent($this->migration));
@@ -407,7 +398,7 @@ class MigrateExecutable implements MigrateExecutableInterface {
             $value = NULL;
             break;
           }
-          $multiple = $multiple || $plugin->multiple();
+          $multiple = $plugin->multiple();
         }
       }
       // No plugins or no value means do not set.

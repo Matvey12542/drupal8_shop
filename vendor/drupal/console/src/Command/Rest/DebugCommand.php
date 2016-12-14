@@ -11,40 +11,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Annotations\DrupalCommand;
+use Drupal\Console\Command\ContainerAwareCommand;
+use Drupal\Component\Serialization\Yaml;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\RestTrait;
-use Drupal\rest\Plugin\Type\ResourcePluginManager;
 
-/**
- * @DrupalCommand(
- *     extension = "rest",
- *     extensionType = "module"
- * )
- */
-class DebugCommand extends Command
+class DebugCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-    use RestTrait;
-
-
-    /**
-     * @var ResourcePluginManager $pluginManagerRest
-     */
-    protected $pluginManagerRest;
-
-    /**
-     * DebugCommand constructor.
-     * @param ResourcePluginManager $pluginManagerRest
-     */
-    public function __construct(ResourcePluginManager $pluginManagerRest)
-    {
-        $this->pluginManagerRest = $pluginManagerRest;
-        parent::__construct();
-    }
-
     protected function configure()
     {
         $this
@@ -61,6 +33,8 @@ class DebugCommand extends Command
                 InputOption::VALUE_OPTIONAL,
                 $this->trans('commands.rest.debug.options.status')
             );
+
+        $this->addDependency('rest');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -75,15 +49,14 @@ class DebugCommand extends Command
         } else {
             $this->restList($io, $status);
         }
-
-        return 0;
     }
 
     private function restDetail(DrupalStyle $io, $resource_id)
     {
         $config = $this->getRestDrupalConfig();
 
-        $plugin = $this->pluginManagerRest->getInstance(['id' => $resource_id]);
+        $resourcePluginManager = $this->getPluginManagerRest();
+        $plugin = $resourcePluginManager->getInstance(array('id' => $resource_id));
 
         if (empty($plugin)) {
             $io->error(
@@ -99,29 +72,11 @@ class DebugCommand extends Command
         $resource = $plugin->getPluginDefinition();
 
         $configuration = [];
-        $configuration[] = [
-          $this->trans('commands.rest.debug.messages.id'),
-          $resource['id']
-        ];
-        $configuration[] = [
-          $this->trans('commands.rest.debug.messages.label'),
-          (string) $resource['label']
-        ];
-        $configuration[] = [
-          $this->trans('commands.rest.debug.messages.canonical_url'),
-          $resource['uri_paths']['canonical']
-        ];
-        $configuration[] = [
-          $this->trans('commands.rest.debug.messages.status'),
-          (isset($config[$resource['id']])) ? $this->trans('commands.rest.debug.messages.enabled') : $this->trans('commands.rest.debug.messages.disabled')];
-        $configuration[] = [
-          $this->trans(
-              sprintf(
-                  'commands.rest.debug.messages.provider',
-                  $resource['provider']
-              )
-          )
-        ];
+        $configuration[] = [$this->trans('commands.rest.debug.messages.id'), $resource['id']];
+        $configuration[] = [$this->trans('commands.rest.debug.messages.label'), (string) $resource['label']];
+        $configuration[] = [$this->trans('commands.rest.debug.messages.canonical_url'), $resource['uri_paths']['canonical']];
+        $configuration[] = [$this->trans('commands.rest.debug.messages.status'), (isset($config[$resource['id']])) ? $this->trans('commands.rest.debug.messages.enabled') : $this->trans('commands.rest.debug.messages.disabled')];
+        $configuration[] = [$this->trans('commands.rest.debug.messages.provider', $resource['provider'])];
 
         $io->comment($resource_id);
         $io->newLine();
@@ -137,10 +92,10 @@ class DebugCommand extends Command
         $tableRows = [];
         foreach ($config[$resource['id']] as $method => $settings) {
             $tableRows[] = [
-              $method,
-              implode(', ', $settings['supported_formats']),
-              implode(', ', $settings['supported_auth']),
-            ];
+                $method,
+                implode(', ', $settings['supported_formats']),
+                implode(', ', $settings['supported_auth']),
+              ];
         }
 
         $io->table($tableHeader, $tableRows);

@@ -11,43 +11,15 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\Create\TermData;
-use Drupal\Console\Utils\DrupalApi;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
 
 /**
  * Class TermsCommand
  * @package Drupal\Console\Command\Generate
  */
-class TermsCommand extends Command
+class TermsCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /**
-     * @var DrupalApi
-     */
-    protected $drupalApi;
-    /**
-     * @var TermData
-     */
-    protected $createTermData;
-
-    /**
-     * TermsCommand constructor.
-     * @param DrupalApi $drupalApi
-     * @param TermData  $createTermData
-     */
-    public function __construct(
-        DrupalApi $drupalApi,
-        TermData $createTermData
-    ) {
-        $this->drupalApi = $drupalApi;
-        $this->createTermData = $createTermData;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -84,7 +56,7 @@ class TermsCommand extends Command
 
         $vocabularies = $input->getArgument('vocabularies');
         if (!$vocabularies) {
-            $vocabularies = $this->drupalApi->getVocabularies();
+            $vocabularies = $this->getDrupalApi()->getVocabularies();
             $vids = $io->choice(
                 $this->trans('commands.create.terms.questions.vocabularies'),
                 array_values($vocabularies),
@@ -134,10 +106,11 @@ class TermsCommand extends Command
         $nameWords = $input->getOption('name-words')?:5;
 
         if (!$vocabularies) {
-            $vocabularies = array_keys($this->drupalApi->getVocabularies());
+            $vocabularies = array_keys($this->getDrupalApi()->getVocabularies());
         }
 
-        $terms = $this->createTermData->create(
+        $createTerms = $this->getDrupalApi()->getCreateTerms();
+        $terms = $createTerms->createTerm(
             $vocabularies,
             $limit,
             $nameWords
@@ -157,7 +130,5 @@ class TermsCommand extends Command
                 $limit
             )
         );
-
-        return 0;
     }
 }

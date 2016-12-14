@@ -11,61 +11,15 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\Console\Generator\PluginImageEffectGenerator;
-use Drupal\Console\Command\Shared\ModuleTrait;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ModuleTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\GeneratorCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Extension\Manager;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\StringConverter;
-use Drupal\Console\Utils\ChainQueue;
 
-/**
- * Class PluginImageEffectCommand
- * @package Drupal\Console\Command\Generate
- */
-class PluginImageEffectCommand extends Command
+class PluginImageEffectCommand extends GeneratorCommand
 {
     use ModuleTrait;
     use ConfirmationTrait;
-    use CommandTrait;
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /** @var PluginImageEffectGenerator  */
-    protected $generator;
-
-    /**
-     * @var StringConverter
-     */
-    protected $stringConverter;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-
-    /**
-     * PluginImageEffectCommand constructor.
-     * @param Manager                    $extensionManager
-     * @param PluginImageEffectGenerator $generator
-     * @param StringConverter            $stringConverter
-     * @param ChainQueue                 $chainQueue
-     */
-    public function __construct(
-        Manager $extensionManager,
-        PluginImageEffectGenerator $generator,
-        StringConverter $stringConverter,
-        ChainQueue $chainQueue
-    ) {
-        $this->extensionManager = $extensionManager;
-        $this->generator = $generator;
-        $this->stringConverter = $stringConverter;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -107,7 +61,7 @@ class PluginImageEffectCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        // @see use Drupal\Console\Command\Shared\ConfirmationTrait::confirmGeneration
+        // @see use Drupal\Console\Command\ConfirmationTrait::confirmGeneration
         if (!$this->confirmGeneration($io)) {
             return;
         }
@@ -118,9 +72,11 @@ class PluginImageEffectCommand extends Command
         $plugin_id = $input->getOption('plugin-id');
         $description = $input->getOption('description');
 
-        $this->generator->generate($module, $class_name, $label, $plugin_id, $description);
+        $this
+            ->getGenerator()
+            ->generate($module, $class_name, $label, $plugin_id, $description);
 
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'discovery']);
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'discovery']);
     }
 
     protected function interact(InputInterface $input, OutputInterface $output)
@@ -130,8 +86,8 @@ class PluginImageEffectCommand extends Command
         // --module option
         $module = $input->getOption('module');
         if (!$module) {
-            // @see Drupal\Console\Command\Shared\ModuleTrait::moduleQuestion
-            $module = $this->moduleQuestion($io);
+            // @see Drupal\Console\Command\ModuleTrait::moduleQuestion
+            $module = $this->moduleQuestion($output);
             $input->setOption('module', $module);
         }
 
@@ -150,7 +106,7 @@ class PluginImageEffectCommand extends Command
         if (!$label) {
             $label = $io->ask(
                 $this->trans('commands.generate.plugin.imageeffect.questions.label'),
-                $this->stringConverter->camelCaseToHuman($class_name)
+                $this->getStringHelper()->camelCaseToHuman($class_name)
             );
             $input->setOption('label', $label);
         }
@@ -160,7 +116,7 @@ class PluginImageEffectCommand extends Command
         if (!$plugin_id) {
             $plugin_id = $io->ask(
                 $this->trans('commands.generate.plugin.imageeffect.questions.plugin-id'),
-                $this->stringConverter->camelCaseToUnderscore($class_name)
+                $this->getStringHelper()->camelCaseToUnderscore($class_name)
             );
             $input->setOption('plugin-id', $plugin_id);
         }
@@ -174,5 +130,10 @@ class PluginImageEffectCommand extends Command
             );
             $input->setOption('description', $description);
         }
+    }
+
+    protected function createGenerator()
+    {
+        return new PluginImageEffectGenerator();
     }
 }

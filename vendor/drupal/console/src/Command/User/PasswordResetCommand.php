@@ -9,42 +9,14 @@ namespace Drupal\Console\Command\User;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Core\Database\Connection;
-use Drupal\Console\Utils\ChainQueue;
-use Drupal\Console\Command\Shared\ConfirmationTrait;
+use Drupal\Console\Command\ConfirmationTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\user\Entity\User;
 use Drupal\Console\Style\DrupalStyle;
 
-class PasswordResetCommand extends Command
+class PasswordResetCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
     use ConfirmationTrait;
-
-    /**
-     * @var Connection
-     */
-    protected $database;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-    /**
-     * PasswordHashCommand constructor.
-     * @param Connection $database
-     * @param ChainQueue $chainQueue
-     */
-    public function __construct(
-        Connection $database,
-        ChainQueue $chainQueue
-    ) {
-        $this->database = $database;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
 
     /**
      * {@inheritdoc}
@@ -78,7 +50,7 @@ class PasswordResetCommand extends Command
                 )
             );
 
-            return 1;
+            return;
         }
 
         $password = $input->getArgument('password');
@@ -90,24 +62,19 @@ class PasswordResetCommand extends Command
                 )
             );
 
-            return 1;
+            return;
         }
 
         try {
             $user->setPassword($password);
             $user->save();
-
-            $schema = $this->database->schema();
-            $flood = $schema->findTables('flood');
-
-            if ($flood) {
-                $this-$this->chainQueue
-                    ->addCommand('user:login:clear:attempts', ['uid' => $uid]);
-            }
+            // Clear all failed login attempts after setup new password to user account.
+            $this->getChain()
+                ->addCommand('user:login:clear:attempts', ['uid' => $uid]);
         } catch (\Exception $e) {
             $io->error($e->getMessage());
 
-            return 1;
+            return;
         }
 
         $io->success(

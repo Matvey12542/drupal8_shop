@@ -7,7 +7,7 @@
 
 namespace Drupal\Console\Command\Develop;
 
-use Drupal\Console\Command\Shared\TranslationTrait;
+use Drupal\Console\Command\TranslationTrait;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,63 +15,15 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Parser;
 use Symfony\Component\Yaml\Exception\ParseException;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\ConfigurationManager;
-use Drupal\Console\Utils\TwigRenderer;
-use Drupal\Console\Utils\NestedArray;
 
 class TranslationStatsCommand extends Command
 {
     use TranslationTrait;
-    use CommandTrait;
-
-    /**
-     * @var string
-     */
-		protected $consoleRoot;
-
-    /**
-     * @var ConfigurationManager
-     */
-    protected $configurationManager;
-
-    /**
-     * @var TwigRenderer $renderer
-     */
-    protected $renderer;
-
-    /**
-      * @var NestedArray
-      */
-    protected $nestedArray;
-
-    /**
-     * TranslationStatsCommand constructor.
-     *
-     * @param $appRoot
-     * @param ConfigurationManager $configurationManager
-     * @param TwigRenderer $renderer
-     * @param NestedArray  $nestedArray
-     */
-    public function __construct(
-        $consoleRoot,
-        ConfigurationManager $configurationManager,
-        TwigRenderer $renderer,
-        NestedArray $nestedArray
-    ) {
-        $this->consoleRoot = $consoleRoot;
-        $this->configurationManager = $configurationManager;
-        $this->renderer = $renderer;
-        $this->nestedArray = $nestedArray;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
-
     protected function configure()
     {
         $this
@@ -102,7 +54,10 @@ class TranslationStatsCommand extends Command
         $language = $input->getArgument('language');
         $format = $input->getOption('format');
 
-        $languages = $this->configurationManager->getConfiguration()->get('application.languages');
+        $application = $this->getApplication();
+        $appRoot = $application->getDirectoryRoot();
+
+        $languages = $application->getConfig()->get('application.languages');
         unset($languages['en']);
 
         if ($language && !isset($languages[$language])) {
@@ -119,7 +74,7 @@ class TranslationStatsCommand extends Command
             $languages = [$language => $languages[$language]];
         }
 
-        $stats = $this->calculateStats($io, $language, $languages);
+        $stats = $this->calculateStats($io, $language, $languages, $appRoot);
 
         if ($format == 'table') {
             $tableHeaders = [
@@ -139,26 +94,22 @@ class TranslationStatsCommand extends Command
             $arguments['languages'] = $stats;
 
             $io->writeln(
-                $this->renderFile(
-										'core/translation/stats.md.twig',
-										null,
-										$arguments
-								)
+                $this->getRenderHelper()->render(
+                    'core/translation/stats.md.twig',
+                    $arguments
+                )
             );
         }
     }
 
-    protected function calculateStats($io, $language = null, $languages)
+    protected function calculateStats($io, $language = null, $languages, $appRoot)
     {
+        $nestedArray = $this->getNestedArrayHelper();
         $englishFilesFinder = new Finder();
         $yaml = new Parser();
         $statistics = [];
 
-        $englishDirectory = $this->consoleRoot .
-            sprintf(
-                DRUPAL_CONSOLE_LANGUAGE,
-                'en'
-            );
+        $englishDirectory = $appRoot . 'config/translations/en';
 
         $englishFiles = $englishFilesFinder->files()->name('*.yml')->in($englishDirectory);
 
@@ -174,15 +125,7 @@ class TranslationStatsCommand extends Command
             }
 
             foreach ($languages as $langCode => $languageName) {
-                $languageDir = $this->consoleRoot .
-										sprintf(
-											DRUPAL_CONSOLE_LANGUAGE,
-											$langCode
-										);
-								//don't show that language if that repo isn't present
-								if (!file_exists($languageDir)) {
-                    continue;
-                }
+                $languageDir = $appRoot . 'config/translations/' . $langCode;
                 if (isset($language) && $langCode != $language) {
                     continue;
                 }
@@ -205,13 +148,13 @@ class TranslationStatsCommand extends Command
                 }
 
                 $diffStatistics = ['total' => 0, 'equal' => 0, 'diff' => 0];
-                $diff = $this->nestedArray->arrayDiff($englishFileParsed, $resourceTranslatedParsed, true, $diffStatistics);
+                $diff = $nestedArray->arrayDiff($englishFileParsed, $resourceTranslatedParsed, true, $diffStatistics);
 
                 $yamlKeys = 0;
                 if (!empty($diff)) {
                     $diffFlatten = array();
                     $keyFlatten = '';
-                    $this->nestedArray->yamlFlattenArray($diff, $diffFlatten, $keyFlatten);
+                    $nestedArray->yamlFlattenArray($diff, $diffFlatten, $keyFlatten);
 
                     // Determine how many yaml keys were returned as values
                     foreach ($diffFlatten as $yamlKey => $yamlValue) {

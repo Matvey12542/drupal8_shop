@@ -2,34 +2,13 @@
 
 /**
  * @file
- * Contains \Drupal\Console\Generator\PluginConditionGenerator.
+ * Contains \Drupal\Console\Generator\PluginFieldFormatterGenerator.
  */
 
 namespace Drupal\Console\Generator;
 
-use Drupal\Console\Extension\Manager;
-
-/**
- * Class PluginConditionGenerator
- * @package Drupal\Console\Generator
- */
 class PluginConditionGenerator extends Generator
 {
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-
-    /**
-     * PluginConditionGenerator constructor.
-     * @param Manager $extensionManager
-     */
-    public function __construct(
-        Manager $extensionManager
-    ) {
-        $this->extensionManager = $extensionManager;
-    }
-
     /**
      * Generator Plugin Field Formatter.
      *
@@ -56,7 +35,7 @@ class PluginConditionGenerator extends Generator
 
         $this->renderFile(
             'module/src/Plugin/Condition/condition.php.twig',
-            $this->extensionManager->getPluginPath($module, 'Condition') . '/' . $class_name . '.php',
+            $this->getSite()->getPluginPath($module, 'Condition') . '/' . $class_name . '.php',
             $parameters
         );
     }

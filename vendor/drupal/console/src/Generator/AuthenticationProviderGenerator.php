@@ -7,24 +7,8 @@
 
 namespace Drupal\Console\Generator;
 
-use Drupal\Console\Extension\Manager;
-
 class AuthenticationProviderGenerator extends Generator
 {
-
-    /** @var Manager  */
-    protected $extensionManager;
-
-    /**
-     * AuthenticationProviderGenerator constructor.
-     * @param Manager $extensionManager
-     */
-    public function __construct(
-        Manager $extensionManager
-    ) {
-        $this->extensionManager = $extensionManager;
-    }
-
     /**
      * Generator Plugin Block.
      *
@@ -41,7 +25,7 @@ class AuthenticationProviderGenerator extends Generator
 
         $this->renderFile(
             'module/src/Authentication/Provider/authentication-provider.php.twig',
-            $this->extensionManager->getModule($module)->getAuthenticationPath('Provider'). '/' . $class . '.php',
+            $this->getSite()->getAuthenticationPath($module, 'Provider').'/'.$class.'.php',
             $parameters
         );
 
@@ -52,9 +36,9 @@ class AuthenticationProviderGenerator extends Generator
           'name' => 'authentication.'.$module,
           'services' => [
             ['name' => 'config.factory'],
-            ['name' => 'entity_type.manager'],
+            ['name' => 'entity.manager'],
           ],
-          'file_exists' => file_exists($this->extensionManager->getModule($module)->getPath() .'/'.$module.'.services.yml'),
+          'file_exists' => file_exists($this->getSite()->getModulePath($module).'/'.$module.'.services.yml'),
           'tags' => [
             'name' => 'authentication_provider',
             'provider_id' => $provider_id,
@@ -64,7 +48,7 @@ class AuthenticationProviderGenerator extends Generator
 
         $this->renderFile(
             'module/services.yml.twig',
-            $this->extensionManager->getModule($module)->getPath() . '/' . $module . '.services.yml',
+            $this->getSite()->getModulePath($module).'/'.$module.'.services.yml',
             $parameters,
             FILE_APPEND
         );

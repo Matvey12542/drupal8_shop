@@ -12,36 +12,11 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Core\Config\CachedStorage;
-use Drupal\Core\Config\ConfigManager;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
 
-class DiffCommand extends Command
+class DiffCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /** @var CachedStorage  */
-    protected $configStorage;
-
-    /** @var ConfigManager  */
-    protected $configManager;
-
-    /**
-     * DiffCommand constructor.
-     * @param CachedStorage $configStorage
-     * @param ConfigManager $configManager
-     */
-    public function __construct(
-        CachedStorage $configStorage,
-        ConfigManager $configManager
-    ) {
-        $this->configStorage = $configStorage;
-        $this->configManager = $configManager;
-        parent::__construct();
-    }
-
     /**
      * A static array map of operations -> color strings.
      *
@@ -105,11 +80,13 @@ class DiffCommand extends Command
         $io = new DrupalStyle($input, $output);
         $directory = $input->getArgument('directory');
         $source_storage = new FileStorage($directory);
+        $active_storage = $this->getConfigStorage();
+        $config_manager = $this->getConfigManager();
 
         if ($input->getOption('reverse')) {
-            $config_comparer = new StorageComparer($source_storage, $this->configStorage, $this->configManager);
+            $config_comparer = new StorageComparer($source_storage, $active_storage, $config_manager);
         } else {
-            $config_comparer = new StorageComparer($this->configStorage, $source_storage, $this->configManager);
+            $config_comparer = new StorageComparer($active_storage, $source_storage, $config_manager);
         }
         if (!$config_comparer->createChangelist()->hasChanges()) {
             $output->writeln($this->trans('commands.config.diff.messages.no-changes'));

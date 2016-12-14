@@ -34,28 +34,15 @@ class {{ entity_class }}HtmlRouteProvider extends AdminHtmlRouteProvider {% endb
     if ($collection_route = $this->getCollectionRoute($entity_type)) {
       $collection->add("entity.{$entity_type_id}.collection", $collection_route);
     }
-{% if revisionable %}
 
-    if ($history_route = $this->getHistoryRoute($entity_type)) {
-      $collection->add("entity.{$entity_type_id}.version_history", $history_route);
+    if ($add_form_route = $this->getAddFormRoute($entity_type)) {
+      $collection->add("entity.{$entity_type_id}.add_form", $add_form_route);
     }
+{% if bundle_entity_type %}
 
-    if ($revision_route = $this->getRevisionRoute($entity_type)) {
-      $collection->add("entity.{$entity_type_id}.revision", $revision_route);
-    }
-
-    if ($revert_route = $this->getRevisionRevertRoute($entity_type)) {
-      $collection->add("{$entity_type_id}.revision_revert_confirm", $revert_route);
-    }
-
-    if ($delete_route = $this->getRevisionDeleteRoute($entity_type)) {
-      $collection->add("{$entity_type_id}.revision_delete_confirm", $delete_route);
-    }
-
-    if ($translation_route = $this->getRevisionTranslationRevertRoute($entity_type)) {
-      $collection->add("{$entity_type_id}.revision_revert_translation_confirm", $translation_route);
-    }
-{%  endif %}
+    $add_page_route = $this->getAddPageRoute($entity_type);
+    $collection->add("$entity_type_id.add_page", $add_page_route);
+{% endif %}
 
     if ($settings_form_route = $this->getSettingsFormRoute($entity_type)) {
       $collection->add("$entity_type_id.settings", $settings_form_route);
@@ -82,32 +69,7 @@ class {{ entity_class }}HtmlRouteProvider extends AdminHtmlRouteProvider {% endb
           '_entity_list' => $entity_type_id,
           '_title' => "{$entity_type->getLabel()} list",
         ])
-        ->setRequirement('_permission', 'access {{ label|lower }} overview')
-        ->setOption('_admin_route', TRUE);
-
-      return $route;
-    }
-  }
-{% if revisionable %}
-
-  /**
-   * Gets the version history route.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type.
-   *
-   * @return \Symfony\Component\Routing\Route|null
-   *   The generated route, if available.
-   */
-  protected function getHistoryRoute(EntityTypeInterface $entity_type) {
-    if ($entity_type->hasLinkTemplate('version-history')) {
-      $route = new Route($entity_type->getLinkTemplate('version-history'));
-      $route
-        ->setDefaults([
-          '_title' => "{$entity_type->getLabel()} revisions",
-          '_controller' => '\Drupal\{{ module }}\Controller\{{ entity_class }}Controller::revisionOverview',
-        ])
-        ->setRequirement('_permission', 'access {{ label|lower }} revisions')
+        ->setRequirement('_permission', 'view {{ label|lower }} entities')
         ->setOption('_admin_route', TRUE);
 
       return $route;
@@ -115,7 +77,7 @@ class {{ entity_class }}HtmlRouteProvider extends AdminHtmlRouteProvider {% endb
   }
 
   /**
-   * Gets the revision route.
+   * Gets the add-form route.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type.
@@ -123,23 +85,49 @@ class {{ entity_class }}HtmlRouteProvider extends AdminHtmlRouteProvider {% endb
    * @return \Symfony\Component\Routing\Route|null
    *   The generated route, if available.
    */
-  protected function getRevisionRoute(EntityTypeInterface $entity_type) {
-    if ($entity_type->hasLinkTemplate('revision')) {
-      $route = new Route($entity_type->getLinkTemplate('revision'));
+  protected function getAddFormRoute(EntityTypeInterface $entity_type) {
+    if ($entity_type->hasLinkTemplate('add-form')) {
+      $entity_type_id = $entity_type->id();
+      $parameters = [
+        $entity_type_id => ['type' => 'entity:' . $entity_type_id],
+      ];
+
+      $route = new Route($entity_type->getLinkTemplate('add-form'));
+{% if bundle_entity_type %}
+      $bundle_entity_type_id = $entity_type->getBundleEntityType();
+      // Content entities with bundles are added via a dedicated controller.
       $route
         ->setDefaults([
-          '_controller' => '\Drupal\{{ module }}\Controller\{{ entity_class }}Controller::revisionShow',
-          '_title_callback' => '\Drupal\{{ module }}\Controller\{{ entity_class }}Controller::revisionPageTitle',
+          '_controller' => 'Drupal\{{ module }}\Controller\{{ entity_class }}AddController::addForm',
+          '_title_callback' => 'Drupal\{{ module }}\Controller\{{ entity_class }}AddController::getAddFormTitle',
         ])
-        ->setRequirement('_permission', 'access {{ label|lower }} revisions')
+        ->setRequirement('_entity_create_access', $entity_type_id . ':{' . $bundle_entity_type_id . '}');
+      $parameters[$bundle_entity_type_id] = ['type' => 'entity:' . $bundle_entity_type_id];
+{% else %}
+      // Use the add form handler, if available, otherwise default.
+      $operation = 'default';
+      if ($entity_type->getFormClass('add')) {
+        $operation = 'add';
+      }
+      $route
+        ->setDefaults([
+          '_entity_form' => "{$entity_type_id}.{$operation}",
+          '_title' => "Add {$entity_type->getLabel()}",
+        ])
+        ->setRequirement('_entity_create_access', $entity_type_id);
+{% endif %}
+
+      $route
+        ->setOption('parameters', $parameters)
         ->setOption('_admin_route', TRUE);
 
       return $route;
     }
   }
+{% if bundle_entity_type %}
 
   /**
-   * Gets the revision revert route.
+   * Gets the add page route.
    *
    * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
    *   The entity type.
@@ -147,71 +135,19 @@ class {{ entity_class }}HtmlRouteProvider extends AdminHtmlRouteProvider {% endb
    * @return \Symfony\Component\Routing\Route|null
    *   The generated route, if available.
    */
-  protected function getRevisionRevertRoute(EntityTypeInterface $entity_type) {
-    if ($entity_type->hasLinkTemplate('revision_revert')) {
-      $route = new Route($entity_type->getLinkTemplate('revision_revert'));
-      $route
-        ->setDefaults([
-          '_form' => '\Drupal\{{ module }}\Form\{{ entity_class }}RevisionRevertForm',
-          '_title' => 'Revert to earlier revision',
-        ])
-        ->setRequirement('_permission', 'revert all {{ label|lower }} revisions')
-        ->setOption('_admin_route', TRUE);
+  protected function getAddPageRoute(EntityTypeInterface $entity_type) {
+    $route = new Route("/admin/structure/{$entity_type->id()}/add");
+    $route
+      ->setDefaults([
+        '_controller' => 'Drupal\{{ module }}\Controller\{{ entity_class }}AddController::add',
+        '_title' => "Add {$entity_type->getLabel()}",
+      ])
+      ->setRequirement('_entity_create_access', $entity_type->id())
+      ->setOption('_admin_route', TRUE);
 
-      return $route;
-    }
+    return $route;
   }
-
-  /**
-   * Gets the revision delete route.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type.
-   *
-   * @return \Symfony\Component\Routing\Route|null
-   *   The generated route, if available.
-   */
-  protected function getRevisionDeleteRoute(EntityTypeInterface $entity_type) {
-    if ($entity_type->hasLinkTemplate('revision_delete')) {
-      $route = new Route($entity_type->getLinkTemplate('revision_delete'));
-      $route
-        ->setDefaults([
-          '_form' => '\Drupal\{{ module }}\Form\{{ entity_class }}RevisionDeleteForm',
-          '_title' => 'Delete earlier revision',
-        ])
-        ->setRequirement('_permission', 'delete all {{ label|lower }} revisions')
-        ->setOption('_admin_route', TRUE);
-
-      return $route;
-    }
-  }
-{% if is_translatable %}
-
-  /**
-   * Gets the revision translation revert route.
-   *
-   * @param \Drupal\Core\Entity\EntityTypeInterface $entity_type
-   *   The entity type.
-   *
-   * @return \Symfony\Component\Routing\Route|null
-   *   The generated route, if available.
-   */
-  protected function getRevisionTranslationRevertRoute(EntityTypeInterface $entity_type) {
-    if ($entity_type->hasLinkTemplate('translation_revert')) {
-      $route = new Route($entity_type->getLinkTemplate('translation_revert'));
-      $route
-        ->setDefaults([
-          '_form' => '\Drupal\{{ module }}\Form\{{ entity_class }}RevisionRevertTranslationForm',
-          '_title' => 'Revert to earlier revision of a translation',
-        ])
-        ->setRequirement('_permission', 'revert all {{ label|lower }} revisions')
-        ->setOption('_admin_route', TRUE);
-
-      return $route;
-    }
-  }
-{%  endif %}
-{%  endif %}
+{% endif %}
 
   /**
    * Gets the settings form route.

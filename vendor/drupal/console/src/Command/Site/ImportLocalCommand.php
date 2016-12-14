@@ -11,12 +11,8 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Utils\ConfigurationManager;
-use Symfony\Component\Filesystem\Filesystem;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * Class ImportLocalCommand
@@ -24,32 +20,6 @@ use Symfony\Component\Yaml\Yaml;
  */
 class ImportLocalCommand extends Command
 {
-    use CommandTrait;
-
-    /**
-     * @var string
-     */
-    protected $appRoot;
-
-    /**
-     * @var ConfigurationManager
-     */
-    protected $configurationManager;
-
-    /**
-     * ImportLocalCommand constructor.
-     * @param $appRoot
-     * @param ConfigurationManager $configurationManager
-     */
-    public function __construct(
-        $appRoot,
-        ConfigurationManager $configurationManager
-    ) {
-        $this->appRoot = $appRoot;
-        $this->configurationManager = $configurationManager;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -88,7 +58,7 @@ class ImportLocalCommand extends Command
         $siteName = $input->getArgument('name');
         $directory = $input->getArgument('directory');
 
-        $fileSystem = new Filesystem();
+        $fileSystem = $this->getContainerHelper()->get('filesystem');
         if (!$fileSystem->exists($directory)) {
             $io->error(
                 sprintf(
@@ -100,19 +70,32 @@ class ImportLocalCommand extends Command
             return 1;
         }
         
+        $drupal = $this->getDrupalHelper();
+        if (!$drupal->isValidRoot($directory)) {
+            $io->error(
+                sprintf(
+                    $this->trans('commands.site.import.local.messages.error-not-drupal'),
+                    $directory
+                )
+            );
+
+            return 1;
+        }
+
         $environment = $input->getOption('environment')?:'local';
 
         $siteConfig = [
           $environment => [
-            'root' => $this->appRoot,
+            'root' => $drupal->getRoot(),
             'host' => 'local',
           ],
         ];
 
-        $yaml = new Yaml();
+        $yaml = $this->getContainerHelper()->get('yaml');
         $dump = $yaml::dump($siteConfig);
 
-        $userPath = sprintf('%s/.console/sites', $this->configurationManager->getHomeDirectory());
+        $config = $this->getApplication()->getConfig();
+        $userPath = sprintf('%s/.console/sites', $config->getUserHomeDir());
         $configFile = sprintf('%s/%s.yml', $userPath, $siteName);
 
         try {

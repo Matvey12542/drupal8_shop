@@ -1,85 +1,97 @@
 <?php
 
-use Drupal\Console\Utils\ConfigurationManager;
-use Drupal\Console\Utils\ArgvInputReader;
-use Drupal\Console\Bootstrap\Drupal;
 use Drupal\Console\Application;
+use Drupal\Console\Helper\KernelHelper;
+use Drupal\Console\Helper\StringHelper;
+use Drupal\Console\Helper\ValidatorHelper;
+use Drupal\Console\Helper\TranslatorHelper;
+use Symfony\Component\EventDispatcher\EventDispatcher;
+use Drupal\Console\Helper\SiteHelper;
+use Drupal\Console\EventSubscriber\ShowGeneratedFilesListener;
+use Drupal\Console\EventSubscriber\ShowWelcomeMessageListener;
+use Drupal\Console\Helper\ShowFileHelper;
+use Drupal\Console\Helper\ChainCommandHelper;
+use Drupal\Console\EventSubscriber\CallCommandListener;
+use Drupal\Console\EventSubscriber\ShowGenerateChainListener;
+use Drupal\Console\EventSubscriber\ShowGenerateInlineListener;
+use Drupal\Console\EventSubscriber\ShowTerminateMessageListener;
+use Drupal\Console\EventSubscriber\ValidateDependenciesListener;
+use Drupal\Console\EventSubscriber\DefaultValueEventListener;
+use Drupal\Console\Helper\NestedArrayHelper;
+use Drupal\Console\Helper\TwigRendererHelper;
+use Drupal\Console\EventSubscriber\ShowGenerateDocListener;
+use Drupal\Console\Helper\DrupalHelper;
+use Drupal\Console\Helper\CommandDiscoveryHelper;
+use Drupal\Console\Helper\RemoteHelper;
+use Drupal\Console\Helper\HttpClientHelper;
+use Drupal\Console\Helper\DrupalApiHelper;
+use Drupal\Console\Helper\ContainerHelper;
+use Symfony\Component\DependencyInjection\ContainerBuilder;
+use Symfony\Component\Config\FileLocator;
+use Symfony\Component\DependencyInjection\Loader\YamlFileLoader;
 
 set_time_limit(0);
-$appRoot = getcwd() . '/';
-$root = $appRoot;
 
-$globalAutoLoadFile = $appRoot.'/autoload.php';
-$projectAutoLoadFile = $appRoot.'/vendor/autoload.php';
+$consoleRoot = __DIR__.'/../';
 
-if (file_exists($globalAutoLoadFile)) {
-    $autoload = include_once $globalAutoLoadFile;
-} elseif (file_exists($projectAutoLoadFile)) {
-    $autoload = include_once $projectAutoLoadFile;
+if (file_exists($consoleRoot.'vendor/autoload.php')) {
+    include_once $consoleRoot.'vendor/autoload.php';
+} elseif (file_exists($consoleRoot.'../../autoload.php')) {
+    include_once $consoleRoot.'../../autoload.php';
 } else {
-    echo PHP_EOL .
-        ' DrupalConsole must be executed within a Drupal Site.'.PHP_EOL.
-        ' Try changing to a Drupal site directory and download it by executing:'. PHP_EOL .
-        ' composer require drupal/console:~1.0 --prefer-dist --optimize-autoloader'. PHP_EOL .
-        ' composer update drupal/console --with-dependencies'. PHP_EOL .
-        PHP_EOL;
-
+    echo 'Something goes wrong with your archive'.PHP_EOL.
+        'Try downloading again'.PHP_EOL;
     exit(1);
 }
 
-if (!file_exists($appRoot.'composer.json')) {
-    $root = realpath($appRoot . '../') . '/';
+$container = new ContainerBuilder();
+$loader = new YamlFileLoader($container, new FileLocator($consoleRoot));
+$loader->load('services.yml');
+
+$config = $container->get('config');
+
+$translatorHelper = new TranslatorHelper();
+$translatorHelper->loadResource($config->get('application.language'), $consoleRoot);
+
+$helpers = [
+    'nested-array' => new NestedArrayHelper(),
+    'kernel' => new KernelHelper(),
+    'string' => new StringHelper(),
+    'validator' => new ValidatorHelper(),
+    'translator' => $translatorHelper,
+    'site' => new SiteHelper(),
+    'renderer' => new TwigRendererHelper(),
+    'showFile' => new ShowFileHelper(),
+    'chain' => new ChainCommandHelper(),
+    'drupal' => new DrupalHelper(),
+    'commandDiscovery' => new CommandDiscoveryHelper($config->get('application.develop')),
+    'remote' => new RemoteHelper(),
+    'httpClient' => new HttpClientHelper(),
+    'api' => new DrupalApiHelper(),
+    'container' => new ContainerHelper($container),
+];
+
+$application = new Application($helpers);
+$application->setDirectoryRoot($consoleRoot);
+
+$dispatcher = new EventDispatcher();
+$dispatcher->addSubscriber(new ValidateDependenciesListener());
+$dispatcher->addSubscriber(new ShowWelcomeMessageListener());
+//$dispatcher->addSubscriber(new ShowGenerateDocListener());
+$dispatcher->addSubscriber(new DefaultValueEventListener());
+$dispatcher->addSubscriber(new ShowGeneratedFilesListener());
+$dispatcher->addSubscriber(new CallCommandListener());
+$dispatcher->addSubscriber(new ShowGenerateChainListener());
+$dispatcher->addSubscriber(new ShowGenerateInlineListener());
+$dispatcher->addSubscriber(new ShowTerminateMessageListener());
+$application->setDispatcher($dispatcher);
+
+$defaultCommand = 'about';
+if ($config->get('application.command')
+    && $application->has($config->get('application.command'))
+) {
+    $defaultCommand = $config->get('application.command');
 }
 
-if (!file_exists($root.'composer.json')) {
-    echo ' No composer.json file found at:' . PHP_EOL .
-         ' '. $root . PHP_EOL .
-         ' you should try run this command,' . PHP_EOL .
-         ' from the Drupal root directory.' . PHP_EOL;
-
-    exit(1);
-}
-
-$argvInputReader = new ArgvInputReader();
-$configurationManager = new ConfigurationManager();
-$configuration = $configurationManager->loadConfiguration($root)
-    ->getConfiguration();
-if ($options = $configuration->get('application.options') ?: []) {
-    $argvInputReader->setOptionsFromConfiguration($options);
-}
-$argvInputReader->setOptionsAsArgv();
-
-if ($root === $appRoot && $argvInputReader->get('root')) {
-    $appRoot = $argvInputReader->get('root');
-    if (is_dir($appRoot)) {
-        chdir($appRoot);
-    }
-    else {
-        $appRoot = $root;
-    }
-}
-
-$drupal = new Drupal($autoload, $root, $appRoot);
-$container = $drupal->boot();
-
-if (!$container) {
-    echo ' In order to list all of the available commands you should try: ' . PHP_EOL .
-         ' Copy config files: drupal init ' . PHP_EOL .
-         ' Install Drupal site: drupal site:install ' . PHP_EOL;
-
-    exit(1);
-}
-
-$configuration = $container->get('console.configuration_manager')
-    ->getConfiguration();
-
-$translator = $container->get('console.translator_manager');
-
-if ($options = $configuration->get('application.options') ?: []) {
-    $argvInputReader->setOptionsFromConfiguration($options);
-}
-$argvInputReader->setOptionsAsArgv();
-
-$application = new Application($container);
-$application->setDefaultCommand('about');
+$application->setDefaultCommand($defaultCommand);
 $application->run();

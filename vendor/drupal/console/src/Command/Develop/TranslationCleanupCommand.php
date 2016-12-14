@@ -13,45 +13,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Parser;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\ConfigurationManager;
 
 class TranslationCleanupCommand extends Command
 {
-    use CommandTrait;
-
-    /**
-     * @var string
-     */
-		protected $consoleRoot;
-
-    /**
-     * @var ConfigurationManager
-     */
-    protected $configurationManager;
-
-    /**
-     * TranslationCleanupCommand constructor.
-     *
-     * @param $consoleRoot
-     * @param configurationManager $configurationManager
-     *
-     */
-    public function __construct(
-        $consoleRoot,
-        ConfigurationManager $configurationManager
-    ) {
-        $this->consoleRoot = $consoleRoot;
-        $this->configurationManager = $configurationManager;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
-
     protected function configure()
     {
         $this
@@ -74,7 +43,10 @@ class TranslationCleanupCommand extends Command
 
         $language = $input->getArgument('language');
 
-        $languages = $this->configurationManager->getConfiguration()->get('application.languages');
+        $application = $this->getApplication();
+        $appRoot = $application->getDirectoryRoot();
+
+        $languages = $application->getConfig()->get('application.languages');
         unset($languages['en']);
 
         if ($language && !isset($languages[$language])) {
@@ -91,33 +63,31 @@ class TranslationCleanupCommand extends Command
             $languages = [$language => $languages[$language]];
         }
 
-        $this->cleanupTranslations($io, $language, $languages);
+        $this->cleanupTranslations($io, $language, $languages, $appRoot);
 
         $io->success(
             $this->trans('commands.translation.cleanup.messages.success')
         );
     }
 
-    protected function cleanupTranslations($io, $language = null, $languages)
+    protected function cleanupTranslations($io, $language = null, $languages, $appRoot)
     {
         $finder = new Finder();
 
         foreach ($languages as $langCode => $languageName) {
-						if (file_exists($this->consoleRoot . sprintf( DRUPAL_CONSOLE_LANGUAGE, $langCode ))) {
-							foreach ($finder->files()->name('*.yml')->in($this->consoleRoot . sprintf( DRUPAL_CONSOLE_LANGUAGE, $langCode )) as $file) {
-									$filename = $file->getBasename('.yml');
-									if (!file_exists($this->consoleRoot . sprintf( DRUPAL_CONSOLE_LANGUAGE, 'en') . $filename . '.yml')) {
-											$io->info(
-													sprintf(
-															$this->trans('commands.translation.cleanup.messages.file-deleted'),
-															$filename,
-															$languageName
-													)
-											);
-											unlink($this->consoleRoot . sprintf( DRUPAL_CONSOLE_LANGUAGE, $langCode ). '/' . $filename . '.yml');
-									}
-							}
-						}
-				}
+            foreach ($finder->files()->name('*.yml')->in($appRoot . 'config/translations/' . $langCode) as $file) {
+                $filename = $file->getBasename('.yml');
+                if (!file_exists($appRoot . 'config/translations/en/' . $filename . '.yml')) {
+                    $io->info(
+                        sprintf(
+                            $this->trans('commands.translation.cleanup.messages.file-deleted'),
+                            $filename,
+                            $languageName
+                        )
+                    );
+                    unlink($appRoot . 'config/translations/' . $langCode. '/' . $filename . '.yml');
+                }
+            }
+        }
     }
 }

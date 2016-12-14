@@ -11,48 +11,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Drupal\language\Entity\ConfigurableLanguage;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\LocaleTrait;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Core\Extension\ModuleHandlerInterface;
-use Drupal\Console\Utils\Site;
-use Drupal\Console\Annotations\DrupalCommand;
 
-/**
- * @DrupalCommand(
- *     extension = "locale",
- *     extensionType = "module"
- * )
- */
-class LanguageAddCommand extends Command
+class LanguageAddCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
     use LocaleTrait;
-
-    /**
-     * @var Site
-     */
-    protected $site;
-
-    /**
-     * @var ModuleHandlerInterface
-     */
-    protected $moduleHandler;
-
-    /**
-     * LanguageAddCommand constructor.
-     * @param Site                   $site
-     * @param ModuleHandlerInterface $moduleHandler
-     */
-    public function __construct(
-        Site $site,
-        ModuleHandlerInterface $moduleHandler
-    ) {
-        $this->site = $site;
-        $this->moduleHandler = $moduleHandler;
-        parent::__construct();
-    }
 
     protected function configure()
     {
@@ -64,31 +28,29 @@ class LanguageAddCommand extends Command
                 InputArgument::REQUIRED,
                 $this->trans('commands.locale.translation.status.arguments.language')
             );
+
+        $this->addDependency('locale');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new DrupalStyle($input, $output);
-        $moduleHandler = $this->moduleHandler;
+        $moduleHandler = $this->getModuleHandler();
         $moduleHandler->loadInclude('locale', 'inc', 'locale.translation');
         $moduleHandler->loadInclude('locale', 'module');
 
         $language = $input->getArgument('language');
-        $languages = $this->site->getStandardLanguages();
+
+        $languages = $this->getLanguages();
+
 
         if (isset($languages[$language])) {
             $langcode = $language;
         } elseif (array_search($language, $languages)) {
             $langcode = array_search($language, $languages);
         } else {
-            $io->error(
-                sprintf(
-                    $this->trans('commands.locale.language.add.messages.invalid-language'),
-                    $language
-                )
-            );
-
-            return 1;
+            $io->error(sprintf($this->trans('commands.locale.language.add.messages.invalid-language'), $language));
+            return;
         }
 
         try {
@@ -99,10 +61,6 @@ class LanguageAddCommand extends Command
             $io->info(sprintf($this->trans('commands.locale.language.add.messages.language-add-successfully'), $language->getName()));
         } catch (\Exception $e) {
             $io->error($e->getMessage());
-
-            return 1;
         }
-
-        return 0;
     }
 }

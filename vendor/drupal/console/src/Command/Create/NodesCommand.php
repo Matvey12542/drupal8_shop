@@ -11,44 +11,17 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Command\Shared\CreateTrait;
-use Drupal\Console\Utils\Create\NodeData;
-use Drupal\Console\Utils\DrupalApi;
+use Drupal\Console\Command\ContainerAwareCommand;
+use Drupal\Console\Command\CreateTrait;
 use Drupal\Console\Style\DrupalStyle;
 
 /**
  * Class NodesCommand
  * @package Drupal\Console\Command\Generate
  */
-class NodesCommand extends Command
+class NodesCommand extends ContainerAwareCommand
 {
     use CreateTrait;
-    use CommandTrait;
-
-    /**
-     * @var DrupalApi
-     */
-    protected $drupalApi;
-    /**
-     * @var NodeData
-     */
-    protected $createNodeData;
-
-    /**
-     * NodesCommand constructor.
-     * @param DrupalApi $drupalApi
-     * @param NodeData  $createNodeData
-     */
-    public function __construct(
-        DrupalApi $drupalApi,
-        NodeData $createNodeData
-    ) {
-        $this->drupalApi = $drupalApi;
-        $this->createNodeData = $createNodeData;
-        parent::__construct();
-    }
 
     /**
      * {@inheritdoc}
@@ -67,19 +40,19 @@ class NodesCommand extends Command
                 'limit',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                $this->trans('commands.create.nodes.options.limit')
+                $this->trans('commands.create.nodes.arguments.limit')
             )
             ->addOption(
                 'title-words',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                $this->trans('commands.create.nodes.options.title-words')
+                $this->trans('commands.create.nodes.arguments.title-words')
             )
             ->addOption(
                 'time-range',
                 null,
                 InputOption::VALUE_OPTIONAL,
-                $this->trans('commands.create.nodes.options.time-range')
+                $this->trans('commands.create.nodes.arguments.time-range')
             );
     }
 
@@ -92,7 +65,7 @@ class NodesCommand extends Command
 
         $contentTypes = $input->getArgument('content-types');
         if (!$contentTypes) {
-            $bundles = $this->drupalApi->getBundles();
+            $bundles = $this->getDrupalApi()->getBundles();
             $contentTypes = $io->choice(
                 $this->trans('commands.create.nodes.questions.content-type'),
                 array_values($bundles),
@@ -149,23 +122,18 @@ class NodesCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
+        $createNodes = $this->getDrupalApi()->getCreateNodes();
+
         $contentTypes = $input->getArgument('content-types');
         $limit = $input->getOption('limit')?:25;
         $titleWords = $input->getOption('title-words')?:5;
         $timeRange = $input->getOption('time-range')?:31536000;
-        $available_types = array_keys($this->drupalApi->getBundles());
-
-        foreach ($contentTypes as $type) {
-            if (!in_array($type, $available_types)) {
-                throw new \Exception('Invalid content type name given.');
-            }
-        }
 
         if (!$contentTypes) {
-            $contentTypes = $available_types;
+            $contentTypes = array_keys($this->getDrupalApi()->getBundles());
         }
 
-        $nodes = $this->createNodeData->create(
+        $nodes = $createNodes->createNode(
             $contentTypes,
             $limit,
             $titleWords,
@@ -188,6 +156,6 @@ class NodesCommand extends Command
             )
         );
 
-        return 0;
+        return;
     }
 }

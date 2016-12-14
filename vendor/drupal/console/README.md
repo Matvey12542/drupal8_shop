@@ -4,12 +4,10 @@
 
 - [Drupal Console](#drupal-console)
   - [Required PHP version](#required-php-version)
+  - [Supported Drupal version](#supported-drupal-version)
   - [Drupal Console documentation](#documentation)
-  - [Download as new dependency](#download-as-new-dependency)
-  - [Fix download the latest version](#fix-download-the-latest-version)
-  - [Download using DrupalComposer](#download-using-drupalcomposer)
-  - [Install Drupal Console Launcher](#install-drupal-console-launcher)
-  - [Run Drupal Console](#running-drupal-console)
+  - [Installing Drupal Console](#installing-drupal-console)
+  - [Running Drupal Console](#running-drupal-console)
   - [Supporting organizations](#supporting-organizations)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
@@ -40,40 +38,12 @@ More information about using this project at the [official documentation](http:/
 ## Required PHP Version
 PHP 5.5.9 or higher is required to use the Drupal Console application.
 
-## Download as new dependency
-```
-# Change directory to Drupal site
-cd /path/to/drupal8.dev
+## Supported Drupal Version
+The Drupal 8 supported version is [Drupal 8.0.x](https://www.drupal.org/node/3060/release).
 
-# Download DrupalConsole
-composer require drupal/console:~1.0 \
---prefer-dist \
---optimize-autoloader \
---sort-packages
+## Installing Drupal Console
 ```
-
-## Fix download the latest version
-
-Drupal 8 include some outdated libraries of Symfony 2.7.x, as result you get an old release of Drupal Console.
-
-To fix that, execute the following command and you will get the latest release of Drupal Console.
-```
-composer update drupal/console --with-dependencies
-```
-
-## Download using DrupalComposer
-```
-composer create-project \
-drupal-composer/drupal-project:8.x-dev \
-drupal8.dev \
---prefer-dist \
---no-progress \
---no-interaction
-```
-
-## Install Drupal Console Launcher
-```
-# Run this in your terminal to get the latest version:
+# Run this in your terminal to get the latest Console version:
 curl https://drupalconsole.com/installer -L -o drupal.phar
 
 # Or if you don't have curl:
@@ -92,26 +62,60 @@ drupal init --override
 drupal check
 ```
 
-## Run Drupal Console
-We highly recommend you to install the global executable, but if is not installed, then you can run DrupalConsole by:  
+## Running Drupal Console
+```
+# Download, install and serve Drupal 8:
+drupal chain --file=~/.console/chain/quick-start.yml
 
-Using default Drupal + DrupalConsole
-```
-vendor/bin/drupal
-```
-Using DrupalComposer
-Change directory `web`, `docroot` or any other.
-```
-../vendor/bin/drupal
-```
+# Create a new Drupal 8 project:
+drupal site:new drupal8.dev
 
+# Lists all available commands:
+drupal list
+
+# Update to the latest version.
+drupal self-update
+```
 
 ## Drupal Console Support
 You can ask for support at Drupal Console gitter chat room [http://bit.ly/console-support](http://bit.ly/console-support).
 
 ## Getting The Project To Contribute
 
-For information about how to run this project for development follow instructions at [setup instructions](https://gist.github.com/jmolivas/97bbd07f328217be3564a434c5bd2618).
+### Fork
+Fork your own copy of the [Console](https://github.com/hechoendrupal/DrupalConsole/fork) repository to your account
+
+### Clone
+Get a copy of your recently cloned version of console in your machine.
+```
+$ git clone git@github.com:[your-git-user-here]/DrupalConsole.git
+```
+### Install dependencies
+Now that you have cloned the project, you need to download dependencies via Composer.
+
+```
+$ cd /path/to/DrupalConsole
+$ composer install
+```
+
+### Running the project
+After using Composer to download dependencies, you can run the project by executing:
+
+```
+$ bin/drupal
+```
+
+### Create a symbolic link
+
+You can run this command to easily access the Drupal Console from anywhere on your system:
+
+```
+$ sudo ln -s /path/to/DrupalConsole/bin/drupal /usr/local/bin/drupal
+```
+
+**NOTE:** The name `drupal` is just an alias you can name it anything you like.
+
+More information about how to contribute with this project at the [official documentation](http://docs.drupalconsole.com/en/contributing/new-features.html).
 
 ## Enabling Autocomplete
 ```
@@ -131,13 +135,10 @@ ln -s ~/.console/drupal.fish ~/.config/fish/completions/drupal.fish
 ```
 
 ## Supporting Organizations
-
-[![weKnow](https://www.drupal.org/files/weKnow-logo_5.png)](http://weknowinc.com)
+[![FFW](https://www.drupal.org/files/ffw-logo.png)](https://ffwagency.com)
 
 [![Anexus](https://www.drupal.org/files/anexus-logo.png)](http://www.anexusit.com/)
 
 [![Indava](https://www.drupal.org/files/indava-logo.png)](http://www.indava.com/)
-
-[![FFW](https://www.drupal.org/files/ffw-logo.png)](https://ffwagency.com)
 
 > Drupal is a registered trademark of Dries Buytaert.

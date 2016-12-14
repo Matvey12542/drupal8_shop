@@ -24,7 +24,6 @@ class ModuleGenerator extends Generator
      * @param $featuresBundle
      * @param $composer
      * @param $dependencies
-     * @param $test
      */
     public function generate(
         $module,
@@ -36,8 +35,7 @@ class ModuleGenerator extends Generator
         $moduleFile,
         $featuresBundle,
         $composer,
-        $dependencies,
-        $test
+        $dependencies
     ) {
         $dir .= '/'.$machineName;
         if (file_exists($dir)) {
@@ -76,7 +74,6 @@ class ModuleGenerator extends Generator
           'description' => $description,
           'package' => $package,
           'dependencies' => $dependencies,
-          'test' => $test,
         );
 
         $this->renderFile(
@@ -87,11 +84,11 @@ class ModuleGenerator extends Generator
 
         if (!empty($featuresBundle)) {
             $this->renderFile(
-                'module/features.yml.twig',
-                $dir.'/'.$machineName.'.features.yml',
-                array(
+              'module/features.yml.twig',
+              $dir.'/'.$machineName.'.features.yml',
+              array(
                 'bundle' => $featuresBundle,
-                )
+              )
             );
         }
 
@@ -107,14 +104,6 @@ class ModuleGenerator extends Generator
             $this->renderFile(
                 'module/composer.json.twig',
                 $dir.'/'.'composer.json',
-                $parameters
-            );
-        }
-
-        if ($test) {
-            $this->renderFile(
-                'module/src/Tests/load-test.php.twig',
-                $dir . '/src/Tests/' . 'LoadTest.php',
                 $parameters
             );
         }

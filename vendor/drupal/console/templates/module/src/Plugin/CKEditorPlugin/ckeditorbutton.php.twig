@@ -39,12 +39,13 @@ class {{ class_name }} extends CKEditorPluginBase {% endblock %}
   public function getButtons() {
     // Make sure that the path to the image matches the file structure of
     // the CKEditor plugin you are implementing.
-    return [
-      '{{ button_name }}' => [
+    $path = drupal_get_path('module', '{{ module }}') . '/js/plugins/{{ plugin_id }}';
+    return array(
+      '{{ button_name }}' => array(
         'label' => t('{{ label }}'),
-        'image' => '{{ button_icon_path }}',
-      ],
-    ];
+        'image' => $path . '/images/icon.png',
+      ),
+    );
   }
 
   /**
@@ -59,28 +60,28 @@ class {{ class_name }} extends CKEditorPluginBase {% endblock %}
   /**
    * {@inheritdoc}
    */
-  public function isInternal() {
+  function isInternal() {
     return FALSE;
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getDependencies(Editor $editor) {
-    return [];
+  function getDependencies(Editor $editor) {
+    return array();
   }
 
   /**
    * {@inheritdoc}
    */
-  public function getLibraries(Editor $editor) {
-    return [];
+  function getLibraries(Editor $editor) {
+    return array();
   }
 
   /**
    * {@inheritdoc}
    */
   public function getConfig(Editor $editor) {
-    return [];
+    return array();
   }
 {% endblock %}

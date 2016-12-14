@@ -7,6 +7,8 @@
 
 namespace Drupal\Console\Command\Generate;
 
+use Drupal\Console\Command\Generate\FormCommand;
+
 class FormBaseCommand extends FormCommand
 {
     protected function configure()

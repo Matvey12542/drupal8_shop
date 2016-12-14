@@ -7,7 +7,7 @@
 
 namespace Drupal\Console\Command\Develop;
 
-use Drupal\Console\Command\Shared\TranslationTrait;
+use Drupal\Console\Command\TranslationTrait;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
@@ -15,53 +15,12 @@ use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Yaml\Exception\ParseException;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\Yaml\Parser;
-use Symfony\Component\Console\Command\Command;
+use Drupal\Console\Command\Command;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Utils\ConfigurationManager;
-use Drupal\Console\Utils\NestedArray;
 
 class TranslationPendingCommand extends Command
 {
     use TranslationTrait;
-    use CommandTrait;
-
-    /**
-     * @var string
-     */
-		protected $consoleRoot;
-
-    /**
-     * @var ConfigurationManager
-     */
-    protected $configurationManager;
-
-    /**
-      * @var NestedArray
-      */
-    protected $nestedArray;
-
-
-    /**
-     * TranslationPendingCommand constructor.
-     *
-     * @param $consoleRoot
-     * @param $configurationManager
-     * @param NestedArray  $nestedArray
-     *
-     */
-    public function __construct(
-        $consoleRoot,
-        ConfigurationManager $configurationManager,
-        NestedArray $nestedArray
-    ) {
-        $this->consoleRoot = $consoleRoot;
-        $this->configurationManager = $configurationManager;
-        $this->nestedArray = $nestedArray;
-        parent::__construct();
-    }
-
-
     /**
      * {@inheritdoc}
      */
@@ -95,7 +54,10 @@ class TranslationPendingCommand extends Command
         $language = $input->getArgument('language');
         $file = $input->getOption('file');
 
-        $languages = $this->configurationManager->getConfiguration()->get('application.languages');
+        $application = $this->getApplication();
+        $appRoot = $application->getDirectoryRoot();
+
+        $languages = $application->getConfig()->get('application.languages');
         unset($languages['en']);
 
         if ($language && !isset($languages[$language])) {
@@ -112,7 +74,7 @@ class TranslationPendingCommand extends Command
             $languages = [$language => $languages[$language]];
         }
 
-        $pendingTranslations = $this->determinePendingTranslation($io, $language, $languages, $file);
+        $pendingTranslations = $this->determinePendingTranslation($io, $language, $languages, $file, $appRoot);
 
         if ($file) {
             $io->success(
@@ -134,17 +96,14 @@ class TranslationPendingCommand extends Command
         }
     }
 
-    protected function determinePendingTranslation($io, $language = null, $languages, $fileFilter)
+    protected function determinePendingTranslation($io, $language = null, $languages, $fileFilter, $appRoot)
     {
+        $nestedArray = $this->getNestedArrayHelper();
         $englishFilesFinder = new Finder();
         $yaml = new Parser();
         $statistics = [];
 
-        $englishDirectory = $this->consoleRoot .
-            sprintf(
-                DRUPAL_CONSOLE_LANGUAGE,
-                'en'
-            );
+        $englishDirectory = $appRoot . 'config/translations/en';
 
         $englishFiles = $englishFilesFinder->files()->name('*.yml')->in($englishDirectory);
 
@@ -165,11 +124,7 @@ class TranslationPendingCommand extends Command
             }
 
             foreach ($languages as $langCode => $languageName) {
-                $languageDir = $this->consoleRoot .
-										sprintf(
-												DRUPAL_CONSOLE_LANGUAGE,
-												$langCode
-										);
+                $languageDir = $appRoot . 'config/translations/' . $langCode;
                 if (isset($language) && $langCode != $language) {
                     continue;
                 }
@@ -193,12 +148,12 @@ class TranslationPendingCommand extends Command
                 }
 
                 $diffStatistics = ['total' => 0, 'equal' => 0, 'diff' => 0];
-                $diff = $this->nestedArray->arrayDiff($englishFileParsed, $resourceTranslatedParsed, true, $diffStatistics);
+                $diff = $nestedArray->arrayDiff($englishFileParsed, $resourceTranslatedParsed, true, $diffStatistics);
 
                 if (!empty($diff)) {
                     $diffFlatten = array();
                     $keyFlatten = '';
-                    $this->nestedArray->yamlFlattenArray($diff, $diffFlatten, $keyFlatten);
+                    $nestedArray->yamlFlattenArray($diff, $diffFlatten, $keyFlatten);
 
                     $tableHeader = [
                         $this->trans('commands.yaml.diff.messages.key'),

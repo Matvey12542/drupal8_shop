@@ -10,49 +10,13 @@ namespace Drupal\Console\Command\Theme;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Core\Config\ConfigFactory;
-use Drupal\Core\Extension\ThemeHandler;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Core\Config\UnmetDependenciesException;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Console\Utils\ChainQueue;
 
-class UninstallCommand extends Command
+class UninstallCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /**
-     * @var ConfigFactory
-     */
-    protected $configFactory;
-
-    /**
-     * @var ThemeHandler
-     */
-    protected $themeHandler;
-
-    /**
-     * @var ChainQueue
-     */
-    protected $chainQueue;
-
-    /**
-     * DebugCommand constructor.
-     * @param ConfigFactory $configFactory
-     * @param ThemeHandler $themeHandler
-     * @param ChainQueue $chainQueue
-     */
-    public function __construct(
-        ConfigFactory $configFactory,
-        ThemeHandler $themeHandler,
-        ChainQueue $chainQueue
-    ) {
-        $this->configFactory = $configFactory;
-        $this->themeHandler = $themeHandler;
-        $this->chainQueue = $chainQueue;
-        parent::__construct();
-    }
+    protected $moduleInstaller;
 
     protected function configure()
     {
@@ -74,7 +38,7 @@ class UninstallCommand extends Command
         if (!$theme) {
             $theme_list = [];
 
-            $themes = $this->themeHandler->rebuildThemeData();
+            $themes = $this->getThemeHandler()->rebuildThemeData();
 
             foreach ($themes as $theme_id => $theme) {
                 if (!empty($theme->info['hidden'])) {
@@ -114,12 +78,14 @@ class UninstallCommand extends Command
     {
         $io = new DrupalStyle($input, $output);
 
-        $config = $this->configFactory->getEditable('system.theme');
+        $configFactory = $this->getConfigFactory();
+        $config = $configFactory->getEditable('system.theme');
 
-        $this->themeHandler->refreshInfo();
+        $themeHandler = $this->getThemeHandler();
+        $themeHandler->refreshInfo();
         $theme = $input->getArgument('theme');
 
-        $themes  = $this->themeHandler->rebuildThemeData();
+        $themes  = $themeHandler->rebuildThemeData();
         $themesAvailable = [];
         $themesUninstalled = [];
         $themesUnavailable = [];
@@ -159,7 +125,7 @@ class UninstallCommand extends Command
                     }
                 }
 
-                $this->themeHandler->uninstall($theme);
+                $themeHandler->uninstall($theme);
 
                 if (count($themesAvailable) > 1) {
                     $io->info(
@@ -220,6 +186,6 @@ class UninstallCommand extends Command
         }
 
         // Run cache rebuild to see changes in Web UI
-        $this->chainQueue->addCommand('cache:rebuild', ['cache' => 'all']);
+        $this->getChain()->addCommand('cache:rebuild', ['cache' => 'all']);
     }
 }

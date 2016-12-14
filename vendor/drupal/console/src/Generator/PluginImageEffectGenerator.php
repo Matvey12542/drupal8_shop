@@ -7,20 +7,8 @@
 
 namespace Drupal\Console\Generator;
 
-use Drupal\Console\Extension\Manager;
-
 class PluginImageEffectGenerator extends Generator
 {
-    /**
-     * PluginImageEffectGenerator constructor.
-     * @param Manager $extensionManager
-     */
-    public function __construct(
-        Manager $extensionManager
-    ) {
-        $this->extensionManager = $extensionManager;
-    }
-
     /**
      * Generator Plugin Image Effect.
      *
@@ -42,7 +30,7 @@ class PluginImageEffectGenerator extends Generator
 
         $this->renderFile(
             'module/src/Plugin/ImageEffect/imageeffect.php.twig',
-            $this->extensionManager->getPluginPath($module, 'ImageEffect') .'/'.$class_name.'.php',
+            $this->getSite()->getPluginPath($module, 'ImageEffect').'/'.$class_name.'.php',
             $parameters
         );
     }

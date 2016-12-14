@@ -12,29 +12,13 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\ProcessBuilder;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Console\Command\Shared\ConnectTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
+use Drupal\Console\Command\Database\ConnectTrait;
 use Drupal\Console\Style\DrupalStyle;
 
-class RestoreCommand extends Command
+class RestoreCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
     use ConnectTrait;
-
-    /**
-     * @var string
-     */
-    protected $appRoot;
-
-    /**
-     * RestoreCommand constructor.
-     * @param string $appRoot
-     */
-    public function __construct($appRoot) {
-        $this->appRoot = $appRoot;
-        parent::__construct();
-    }
 
     /**
      * {@inheritdoc}
@@ -68,7 +52,7 @@ class RestoreCommand extends Command
 
         $database = $input->getArgument('database');
         $file = $input->getOption('file');
-        $learning = $input->getOption('learning');
+        $learning = $input->hasOption('learning')?$input->getOption('learning'):false;
 
         $databaseConnection = $this->resolveConnection($io, $database);
 
@@ -76,7 +60,7 @@ class RestoreCommand extends Command
             $io->error(
                 $this->trans('commands.database.restore.messages.no-file')
             );
-            return 1;
+            return;
         }
         if ($databaseConnection['driver'] == 'mysql') {
             $command = sprintf(
@@ -106,7 +90,7 @@ class RestoreCommand extends Command
 
         $processBuilder = new ProcessBuilder(['-v']);
         $process = $processBuilder->getProcess();
-        $process->setWorkingDirectory($this->appRoot);
+        $process->setWorkingDirectory($this->getDrupalHelper()->getRoot());
         $process->setTty('true');
         $process->setCommandLine($command);
         $process->run();
@@ -122,7 +106,5 @@ class RestoreCommand extends Command
                 $file
             )
         );
-
-        return 0;
     }
 }

@@ -11,7 +11,6 @@ use Drupal\Component\Utility\Random;
 use Drupal\Core\Field\FieldStorageDefinitionInterface;
 use Drupal\field\FieldConfigInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\EntityFieldManagerInterface;
 use Drupal\Core\Datetime\DateFormatterInterface;
 
 /**
@@ -22,9 +21,6 @@ abstract class Base
 {
     /* @var EntityTypeManagerInterface */
     protected $entityTypeManager = null;
-
-    /* @var EntityFieldManagerInterface */
-    protected $entityFieldManager = null;
 
     /* @var DateFormatterInterface */
     protected $dateFormatter = null;
@@ -37,17 +33,14 @@ abstract class Base
 
     /**
      * ContentNode constructor.
-     * @param EntityTypeManagerInterface  $entityTypeManager
-     * @param EntityFieldManagerInterface $entityFieldManager
-     * @param DateFormatterInterface      $dateFormatter
+     * @param EntityTypeManagerInterface $entityTypeManager
+     * @param DateFormatterInterface     $dateFormatter
      */
     public function __construct(
         EntityTypeManagerInterface $entityTypeManager,
-        EntityFieldManagerInterface $entityFieldManager,
         DateFormatterInterface $dateFormatter
     ) {
         $this->entityTypeManager = $entityTypeManager;
-        $this->entityFieldManager = $entityFieldManager;
         $this->dateFormatter = $dateFormatter;
     }
 
@@ -61,7 +54,7 @@ abstract class Base
         $bundle = $entity->bundle();
 
         $fields = array_filter(
-            $this->entityFieldManager->getFieldDefinitions($entityTypeId, $bundle), function ($fieldDefinition) {
+            $this->entityTypeManager->getFieldDefinitions($entityTypeId, $bundle), function ($fieldDefinition) {
                 return $fieldDefinition instanceof FieldConfigInterface;
             }
         );

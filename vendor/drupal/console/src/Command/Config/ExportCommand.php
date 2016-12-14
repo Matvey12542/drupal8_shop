@@ -12,29 +12,11 @@ use Drupal\Component\Serialization\Yaml;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Filesystem\Filesystem;
-use Drupal\Console\Command\Shared\CommandTrait;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
-use Drupal\Core\Config\ConfigManager;
 
-
-class ExportCommand extends Command
+class ExportCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /** @var ConfigManager  */
-    protected $configManager;
-
-    /**
-     * ExportCommand constructor.
-     * @param ConfigManager $configManager
-     */
-    public function __construct(ConfigManager $configManager ) {
-        $this->configManager = $configManager;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -66,6 +48,7 @@ class ExportCommand extends Command
 
         $directory = $input->getOption('directory');
         $tar = $input->getOption('tar');
+        $archiveTar = new ArchiveTar();
 
         if (!$directory) {
             $directory = config_get_config_directory(CONFIG_SYNC_DIRECTORY);
@@ -87,9 +70,10 @@ class ExportCommand extends Command
         }
 
         try {
+            $configManager = $this->getConfigManager();
             // Get raw configuration data without overrides.
-            foreach ($this->configManager->getConfigFactory()->listAll() as $name) {
-                $configData = $this->configManager->getConfigFactory()->get($name)->getRawData();
+            foreach ($configManager->getConfigFactory()->listAll() as $name) {
+                $configData = $configManager->getConfigFactory()->get($name)->getRawData();
                 $configName =  sprintf('%s.yml', $name);
                 $ymlData = Yaml::encode($configData);
 
@@ -102,29 +86,13 @@ class ExportCommand extends Command
                 }
 
                 $configFileName =  sprintf('%s/%s', $directory, $configName);
-
-                $fileSystem = new Filesystem();
-                try {
-                    $fileSystem->mkdir($directory);
-                } catch (IOExceptionInterface $e) {
-                    $io->error(
-                        sprintf(
-                            $this->trans('commands.config.export.messages.error'),
-                            $e->getPath()
-                        )
-                    );
-                }
                 file_put_contents($configFileName, $ymlData);
             }
         } catch (\Exception $e) {
             $io->error($e->getMessage());
         }
 
-        $io->info(
-          sprintf(
-            $this->trans('commands.config.export.messages.directory'),
-              $directory
-            )
-        );
+        $io->success($this->trans('commands.config.export.messages.directory'));
+        $io->simple($directory);
     }
 }

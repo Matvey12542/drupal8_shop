@@ -7,20 +7,8 @@
 
 namespace Drupal\Console\Generator;
 
-use Drupal\Console\Extension\Manager;
-
 class PluginMailGenerator extends Generator
 {
-    /**
-     * PluginMailGenerator constructor.
-     * @param Manager $extensionManager
-     */
-    public function __construct(
-        Manager $extensionManager
-    ) {
-        $this->extensionManager = $extensionManager;
-    }
-
     /**
      * Generator Plugin Block.
      *
@@ -42,7 +30,7 @@ class PluginMailGenerator extends Generator
 
         $this->renderFile(
             'module/src/Plugin/Mail/mail.php.twig',
-            $this->extensionManager->getPluginPath($module, 'Mail') .'/'.$class_name.'.php',
+            $this->getSite()->getPluginPath($module, 'Mail').'/'.$class_name.'.php',
             $parameters
         );
     }

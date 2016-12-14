@@ -7,47 +7,19 @@
 
 namespace Drupal\Console\Command\Views;
 
+use Herrera\Json\Exception\Exception;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Symfony\Component\Console\Command\Command;
-use Drupal\Console\Command\Shared\CommandTrait;
-use Drupal\Core\Entity\EntityTypeManagerInterface;
-use Drupal\Core\Entity\Query\QueryFactory;
+use Drupal\Console\Command\ContainerAwareCommand;
 use Drupal\Console\Style\DrupalStyle;
 
 /**
  * Class DisableCommand
  * @package Drupal\Console\Command\Views
  */
-class DisableCommand extends Command
+class DisableCommand extends ContainerAwareCommand
 {
-    use CommandTrait;
-
-    /**
-     * @var EntityTypeManagerInterface
-     */
-    protected $entityTypeManager;
-
-    /**
-     * @var QueryFactory
-     */
-    protected $entityQuery;
-
-    /**
-     * DisableCommand constructor.
-     * @param EntityTypeManagerInterface $entityTypeManager
-     * @param QueryFactory      $entityQuery
-     */
-    public function __construct(
-        EntityTypeManagerInterface $entityTypeManager,
-        QueryFactory $entityQuery
-    ) {
-        $this->entityTypeManager = $entityTypeManager;
-        $this->entityQuery = $entityQuery;
-        parent::__construct();
-    }
-
     /**
      * {@inheritdoc}
      */
@@ -66,33 +38,15 @@ class DisableCommand extends Command
     /**
      * {@inheritdoc}
      */
-    protected function interact(InputInterface $input, OutputInterface $output)
-    {
-        $io = new DrupalStyle($input, $output);
-        $viewId = $input->getArgument('view-id');
-        if (!$viewId) {
-            $views = $this->entityQuery
-                ->get('view')
-                ->condition('status', 1)
-                ->execute();
-            $viewId = $io->choiceNoList(
-                $this->trans('commands.views.debug.arguments.view-id'),
-                $views
-            );
-            $input->setArgument('view-id', $viewId);
-        }
-    }
-
-    /**
-     * {@inheritdoc}
-     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $io = new DrupalStyle($input, $output);
 
         $viewId = $input->getArgument('view-id');
 
-        $view = $this->entityTypeManager->getStorage('view')->load($viewId);
+        $entityManager = $this->getEntityManager();
+
+        $view = $entityManager->getStorage('view')->load($viewId);
 
         if (empty($view)) {
             $io->error(sprintf($this->trans('commands.views.debug.messages.not-found'), $viewId));
@@ -102,8 +56,8 @@ class DisableCommand extends Command
         try {
             $view->disable()->save();
 
-            $io->success(sprintf($this->trans('commands.views.disable.messages.disabled-successfully'), $view->get('label')));
-        } catch (\Exception $e) {
+            $io->info(sprintf($this->trans('commands.views.disable.messages.disabled-successfully'), $view->get('label')));
+        } catch (Exception $e) {
             $io->error($e->getMessage());
         }
     }
